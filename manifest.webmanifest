@@ -1,0 +1,21 @@
+{
+  "name": "Keep the Light",
+  "short_name": "Keep the Light",
+  "description": "A lighthouse-keeper incremental that ends. One rock, one light, one hundred years: 1890 to 1990.",
+  "id": "./",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0b1220",
+  "theme_color": "#0b1220",
+  "categories": ["games", "simulation"],
+  "icons": [
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "icons/maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ],
+  "screenshots": [
+    { "src": "icons/screenshot-portrait.png", "sizes": "720x1280", "type": "image/png", "form_factor": "narrow" }
+  ]
+}

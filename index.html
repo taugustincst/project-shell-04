@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0b1220">
+<meta name="description" content="Keep the Light: a lighthouse-keeper incremental that ends. One rock, one light, one hundred years — 1890 to 1990.">
+<title>Keep the Light</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div id="app" class="app" hidden>
+  <header class="top">
+    <div class="brand">
+      <h1>Keep the Light</h1>
+      <div class="date" id="hdr-date">Carrow Point · 1890</div>
+    </div>
+    <div class="era" id="hdr-era">The Oil Years</div>
+  </header>
+
+  <section class="scene" id="scene" aria-label="The lighthouse">
+    <svg viewBox="0 0 360 150" preserveAspectRatio="xMidYMax slice" aria-hidden="true">
+      <defs>
+        <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#070d1a"/><stop offset="1" stop-color="#15223a"/></linearGradient>
+        <linearGradient id="sea" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#16304a"/><stop offset="1" stop-color="#0b1a2b"/></linearGradient>
+        <radialGradient id="glow" cx="0.5" cy="0.5" r="0.5"><stop offset="0" stop-color="#ffe9a8" stop-opacity="0.9"/><stop offset="1" stop-color="#ffe9a8" stop-opacity="0"/></radialGradient>
+        <linearGradient id="beam" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#ffe9a8" stop-opacity="0.55"/><stop offset="1" stop-color="#ffe9a8" stop-opacity="0"/></linearGradient>
+      </defs>
+      <rect width="360" height="150" fill="url(#sky)"/>
+      <g id="stars" fill="#dfe8ff" opacity="0.7"><circle cx="30" cy="20" r="1"/><circle cx="80" cy="42" r="0.8"/><circle cx="130" cy="15" r="1.1"/><circle cx="250" cy="30" r="0.9"/><circle cx="300" cy="12" r="1"/><circle cx="330" cy="50" r="0.7"/><circle cx="200" cy="48" r="0.8"/><circle cx="60" cy="70" r="0.6"/><circle cx="280" cy="68" r="0.7"/></g>
+      <rect y="105" width="360" height="45" fill="url(#sea)"/>
+      <g id="ships" fill="#9fb3c8" opacity="0.8"></g>
+      <path d="M150 150 L150 118 Q180 100 210 118 L210 150 Z" fill="#2a2f36"/>
+      <g id="tower">
+        <path d="M171 118 L189 118 L186 60 L174 60 Z" fill="#d8d2c4"/>
+        <rect x="174" y="78" width="12" height="7" fill="#b7342b"/>
+        <rect x="174" y="95" width="12" height="7" fill="#b7342b"/>
+        <rect x="172" y="56" width="16" height="5" fill="#3b3f46"/>
+        <rect x="175" y="47" width="10" height="10" fill="#1a1f29" id="lantern"/>
+        <path d="M174 47 L186 47 L180 41 Z" fill="#3b3f46"/>
+        <g id="beamgroup" transform="translate(180 52)"><path id="beam" d="M0 -3 L170 -40 L170 40 L0 3 Z" fill="url(#beam)"/></g>
+        <circle id="lamp" cx="180" cy="52" r="4" fill="#ffe9a8"/>
+        <circle id="lampglow" cx="180" cy="52" r="14" fill="url(#glow)"/>
+      </g>
+    </svg>
+    <div class="scene-caption"><span id="scene-light">Light lit</span> · <span id="scene-weather">clear</span></div>
+  </section>
+
+  <section class="resources" aria-label="Stores and standing">
+    <button class="res" id="res-fuel" title="Fuel in the store">
+      <span class="res-label" id="res-fuel-label">Oil</span>
+      <span class="res-val" id="res-fuel-val">20</span>
+      <span class="res-sub" id="res-fuel-sub">/ 30 gal</span>
+    </button>
+    <div class="res"><span class="res-label">Purse</span><span class="res-val" id="res-funds-val">£20</span><span class="res-sub" id="res-funds-sub">+£1.9 / day</span></div>
+    <div class="res"><span class="res-label">Standing</span><span class="res-val" id="res-standing-val">10</span><span class="res-sub">with the Board</span></div>
+    <div class="res"><span class="res-label">Village</span><span class="res-val" id="res-village-val">40</span><span class="res-sub" id="res-village-sub">souls</span></div>
+  </section>
+
+  <button class="action" id="btn-click"><span id="btn-click-label">Haul oil up the stair</span><span class="action-sub" id="btn-click-sub">+6 gal</span></button>
+
+  <nav class="tabs" role="tablist">
+    <button role="tab" class="tab active" data-tab="station">Station</button>
+    <button role="tab" class="tab" data-tab="log">Logbook <span class="badge" id="log-badge" hidden>0</span></button>
+    <button role="tab" class="tab" data-tab="village">Village</button>
+    <button role="tab" class="tab" data-tab="more">More</button>
+  </nav>
+
+  <main class="panels">
+    <section id="tab-station" class="panel active" role="tabpanel">
+      <div id="upgrades"></div>
+    </section>
+    <section id="tab-log" class="panel" role="tabpanel">
+      <div class="log-tools"><label><input type="checkbox" id="log-order"> Read from the start</label></div>
+      <ol id="logbook" class="logbook"></ol>
+    </section>
+    <section id="tab-village" class="panel" role="tabpanel">
+      <div id="village-stats" class="stats"></div>
+      <div class="card" id="era-card"></div>
+      <div class="card" id="board-card"></div>
+    </section>
+    <section id="tab-more" class="panel" role="tabpanel">
+      <div class="card">
+        <h2>Settings</h2>
+        <label class="row"><input type="checkbox" id="opt-large"> Large text</label>
+        <label class="row"><input type="checkbox" id="opt-motion"> Reduce motion</label>
+        <label class="row"><input type="checkbox" id="opt-contrast"> High contrast</label>
+      </div>
+      <div class="card" id="unlock-card">
+        <h2>The rest of the century</h2>
+        <p id="unlock-status">The first forty years, 1890 to 1930, are free. One purchase opens the rest of the century: war, flood, helicopters, the Board's letter, the endings, and new headlands.</p>
+        <div class="row-btns"><button class="btn primary" id="btn-unlock">Unlock the rest of the century</button><button class="btn" id="btn-restore">Restore purchase</button></div>
+      </div>
+      <div class="card">
+        <h2>Save</h2>
+        <p class="muted">Progress is saved on this device automatically. Nothing leaves it.</p>
+        <div class="row-btns"><button class="btn" id="btn-export">Copy save code</button><button class="btn" id="btn-import">Paste save code</button><button class="btn danger" id="btn-reset">Start the century again</button></div>
+      </div>
+      <div class="card about">
+        <h2>About</h2>
+        <p>Keep the Light is an incremental that ends: one lighthouse, 1890 to 1990, a century of story in a keeper's logbook. No ads, no timers, no accounts, fully offline.</p>
+        <p class="muted">Version <span id="about-version">1.0.0</span> · <a href="privacy.html">Privacy</a> · © AugustInnovations LLC</p>
+      </div>
+    </section>
+  </main>
+</div>
+
+<!-- Event -->
+<div class="modal" id="modal-event" hidden role="dialog" aria-modal="true" aria-labelledby="event-title">
+  <div class="sheet">
+    <div class="sheet-date" id="event-date"></div>
+    <h2 id="event-title"></h2>
+    <p id="event-text"></p>
+    <div class="choices" id="event-choices"></div>
+  </div>
+</div>
+
+<!-- Away summary -->
+<div class="modal" id="modal-away" hidden role="dialog" aria-modal="true">
+  <div class="sheet">
+    <h2>While you were away</h2>
+    <p id="away-text"></p>
+    <button class="btn primary" id="btn-away-ok">Back to the watch</button>
+  </div>
+</div>
+
+<!-- Gate -->
+<div class="modal" id="modal-gate" hidden role="dialog" aria-modal="true">
+  <div class="sheet">
+    <div class="sheet-date">1930</div>
+    <h2>Electrification</h2>
+    <p>Forty years, one family, one light, and the lamp room smells of nothing now. This is where the free part of the century ends. The light keeps burning and the purse keeps filling while you decide.</p>
+    <p class="muted">The rest of the century: 1930 to 1990, war and flood and helicopters, the letter with "automation" in it, three endings, and three more headlands to keep after this one.</p>
+    <div class="row-btns"><button class="btn primary" id="btn-gate-unlock">Unlock the rest of the century</button><button class="btn" id="btn-gate-restore">Restore purchase</button><button class="btn" id="btn-gate-later">Keep the watch for now</button></div>
+    <p class="muted small" id="gate-note"></p>
+  </div>
+</div>
+
+<!-- Ending -->
+<div class="modal" id="modal-ending" hidden role="dialog" aria-modal="true">
+  <div class="sheet">
+    <div class="sheet-date">1990</div>
+    <h2 id="ending-title"></h2>
+    <p id="ending-text"></p>
+    <div class="stats" id="ending-stats"></div>
+    <h3>A new headland</h3>
+    <p class="muted">Another Rook, another rock. Carry one heirloom from this century into the next.</p>
+    <div class="field"><label for="sel-heirloom">Heirloom</label><select id="sel-heirloom"></select></div>
+    <div class="field"><label for="sel-headland">Headland</label><select id="sel-headland"></select></div>
+    <p class="muted small" id="headland-desc"></p>
+    <div class="row-btns"><button class="btn primary" id="btn-prestige">Take charge of the new light</button><button class="btn" id="btn-ending-stay">Stay and read the log</button></div>
+  </div>
+</div>
+
+<!-- Toast -->
+<div id="toast" class="toast" hidden></div>
+
+<script src="js/data.js"></script>
+<script src="js/engine.js"></script>
+<script src="js/billing.js"></script>
+<script src="js/game.js"></script>
+</body>
+</html>
