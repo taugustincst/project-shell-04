@@ -6,7 +6,9 @@ const VERSION = '1.0.0';
 const SAVE_KEY = 'keepthelight.v1', BACKUP_KEY = 'keepthelight.v1.backup';
 const $ = id => document.getElementById(id);
 const params = new URLSearchParams(location.search);
-const DEV = params.get('dev') === '1';
+// ?dev=1 makes unlocking free for testing. Only on a local copy: the Play app opens the public site, and
+// the free unlock would otherwise be one link away for anyone and saved on their phone.
+const DEV = params.get('dev') === '1' && ['localhost', '127.0.0.1', ''].includes(location.hostname);
 
 /* ---------- persistent profile: the run + meta progress + settings ---------- */
 let profile = null; let S = null; // S is the live run state

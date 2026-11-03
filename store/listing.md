@@ -32,6 +32,6 @@ Game · Simulation. Tags: incremental, idle, text, story, offline.
 ## Declarations (to confirm in Console)
 - IARC questionnaire: no violence beyond text references to war and shipwreck; no gambling; no user interaction; no ads; in-app purchase: yes (one non-consumable).
 - Target audience: 13+ (choose 13-15, 16-17, 18+). Not designed for children.
-- Data safety: no data collected, no data shared. Privacy policy: the repo's Pages site, privacy.html.
+- Data safety (Play edition): collects one data type, shares nothing. Financial info > Purchase history: collected yes, shared no, processed ephemerally yes, required, purpose App functionality. After a purchase the game sends the package name, product ID and Play purchase token over HTTPS to the acknowledgement service (the one in the fftremake repository's ack-endpoint folder), which checks it with Google Play and acknowledges it; nothing is kept on the server. Encrypted in transit: yes. Deletion: nothing is kept on the server; progress is removed by uninstalling or clearing the app's data. Privacy policy: the repo's Pages site, privacy.html.
 - Contact: elderon@augustinnovations.io
 - In-app product: `full_unlock`, non-consumable, $4.99, title "The rest of the century", description "Opens 1930 to 1990, all three endings, and the other headlands."
