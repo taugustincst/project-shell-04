@@ -10,3 +10,4 @@ Patterns recorded after corrections. Read at session start.
 - **Balance from sims, not vibes.** First sim showed every strategy converging on the same ending with millions unspent: fix was era cost scaling, standing requirements on civic upgrades, a lower standing-per-ship rate, and a scripted decision event (the 1979 letter) so endings depend on choices.
 - **Offline progress must not skip story.** Freeze the calendar while away; let only the economy run.
 - **Plan in `tasks/todo.md`, verify before done, log corrections here.** (Tj's build guidelines, 2026-11-03.)
+- **Another agent (Folder) works these repos concurrently.** On 2026-11-03 Folder's "placeholder index.html" commit replaced the live game page on shell-04 main after the game had merged. Always `git fetch origin main` before merging, diff `index.html` against the game's, and restore it if a placeholder landed. Keep Folder's Pages workflow (it is what enabled Pages).
