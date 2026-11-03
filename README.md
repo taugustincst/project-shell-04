@@ -2,7 +2,7 @@
 
 **A lighthouse-keeper incremental with an ending.** One rock, one light, one hundred years, 1890 to 1990. Burn oil, automate, electrify; manage storms and keepers; watch a village grow because your light exists. Then decommission the light, or become a legend.
 
-Free on Google Play (through electrification, 1890–1930) with a one-time $4.99 unlock for the rest of the century. No ads, no consumables, fully offline.
+A paid download on Google Play: the whole century, 1890–1990, with no in-app purchases. No ads, no consumables, fully offline.
 
 Status: **v1.0.0 draft built 2026-11-03**, not yet submitted. Build brief and the living log are in [HANDOFF.md](HANDOFF.md). Repo rename at ship time (Tj's call).
 
@@ -27,9 +27,8 @@ No build step, no dependencies at runtime.
 | `js/data.js` | All content: eras, headlands, upgrades, events, logbook, endings. Pure data. |
 | `js/engine.js` | The numbers engine: deterministic (seeded RNG), no DOM. Runs in Node and the browser. |
 | `js/game.js` | UI, save, game loop, offline handling, prestige, test API. |
-| `js/billing.js` | Google Play Billing via the Digital Goods API (TWA). One non-consumable, `full_unlock`. |
 | `sim/sim.js` | Headless century simulator: `node sim/sim.js all [seed]` plays five strategies and the three other headlands and reports era timings, economy and endings. |
-| `tests/engine.test.js` | Engine unit tests (determinism, gate, endings, offline cap, save sanitizer, every event choice on every headland). |
+| `tests/engine.test.js` | Engine unit tests (determinism, no stop at 1930, endings, offline cap, save sanitizer, every event choice on every headland). |
 | `tests/smoke.js` | Playwright smoke test of the real page (works over `file://`, no server needed). |
 | `tools/make-icons.js` | Renders icons and the staged store screenshot with Chromium. |
 
@@ -41,7 +40,7 @@ npm install && node tests/smoke.js   # browser smoke test (needs Playwright's Ch
 
 ### Test API
 
-`window.__keepthelight` exposes `state`, `setYear(y, day)`, `give({fuel, funds, standing, village})`, `buyAll()`, `forceEvent(id)`, `ff(days)`, `unlock()`, `finish()`, `save()`, `reset()`, `setTab(name)`. Opening the page with `?dev=1` makes the unlock button free (test builds only).
+`window.__keepthelight` exposes `state`, `setYear(y, day)`, `give({fuel, funds, standing, village})`, `buyAll()`, `forceEvent(id)`, `ff(days)`, `finish()`, `save()`, `reset()`, `setTab(name)`.
 
 ### Saves
 
@@ -51,7 +50,7 @@ npm install && node tests/smoke.js   # browser smoke test (needs Playwright's Ch
 
 Active play only moves the calendar; a session of twenty minutes is a few game-years early on and a decade or more late.
 
-| Player | To the 1930 gate | Whole century | Ending |
+| Player | To 1930 | Whole century | Ending |
 | --- | --- | --- | --- |
 | Taps every day, buys the cheapest thing | ~3.2 h | ~5.5 h | depends on the 1979 choice |
 | Checks in every 15 minutes | ~3.5 h | ~6.0 h | automated (fewer civic works) |
@@ -60,6 +59,5 @@ Active play only moves the calendar; a session of twenty minutes is a few game-y
 
 ## Publishing to Google Play
 
-Ships as a Trusted Web Activity, the Ironhold pattern: a small Android app that opens the PWA full-screen. The Android project is not in this repository yet (see HANDOFF.md, next steps). Package name, keystore and the Play product (`full_unlock`, non-consumable, $4.99) are Tj's calls; the game expects the product id `full_unlock` and acknowledges the purchase by completing the PaymentRequest.
+A paid app on Google Play with the whole game packed inside it (`android/play`, see `PLAY.md`). Pages deploys only the store page from `main` (`site/index.html`, the privacy policy `privacy.html` and the store graphics), not the playable game. Store copy: `store/listing.md`.
 
-Pages deploys from `main` via `.github/workflows/pages.yml`; the privacy policy is `privacy.html` on that site. Store copy draft: `store/listing.md`.

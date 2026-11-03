@@ -6,11 +6,16 @@ t('same seed, same century', () => {
   const play = () => { const s = E.newState({ seed: 42, unlocked: true }); for (let i = 0; i < 20000; i++) { E.advance(s, 1, true); if (s.pendingEvent) E.resolveEvent(s, 0); E.click(s); const v = E.visibleUpgrades(s).filter(u => E.canBuy(s, u.id)); if (v.length) E.buy(s, v[0].id); } return JSON.stringify([s.year, s.day, s.funds, s.stats, s.log.length]); };
   assert.strictEqual(play(), play());
 });
-t('the calendar stops at the gate without the unlock, and the purse keeps filling', () => {
-  const s = E.newState({ seed: 1 }); s.bought.contract = 4; s.bought.store = 4; s.funds = 1e6; s.year = 1929; s.day = 360; s.dayIndex = 39 * 365 + 360;
-  E.advance(s, 60, false); assert.ok(s.gated && s.year === 1930 && s.day === 0, 'gated at 1930');
-  const f = s.funds; E.advance(s, 30, false); assert.ok(s.funds > f, 'earning continues'); assert.strictEqual(s.year, 1930);
-  s.unlocked = true; s.gated = false; E.advance(s, 60, false); assert.ok(s.year >= 1930 && (s.year > 1930 || s.day > 0), 'calendar resumes');
+t('the calendar runs straight through 1930 with no gate', () => {
+  const s = E.newState({ seed: 1 }); assert.strictEqual(s.unlocked, true); s.bought.contract = 4; s.bought.store = 4; s.funds = 1e6; s.year = 1929; s.day = 360; s.dayIndex = 39 * 365 + 360;
+  E.advance(s, 60, false); assert.ok(s.year === 1930 && s.day > 0, 'past 1930 day 0'); assert.ok(!s.gated);
+  for (let i = 0; i < 5000 && s.year < 1931; i++) { E.advance(s, 5, false); if (s.pendingEvent) E.resolveEvent(s, 0); }
+  assert.ok(s.year >= 1931, 'into 1931'); assert.ok(!s.log.some(l => /free part|the unlock/i.test(l.t)), 'no stop line in the logbook');
+});
+t('old saves and save codes stopped at 1930 load with the whole century open', () => {
+  const r = E.sanitize({ year: 1930, day: 0, funds: 100, fuel: 100, unlocked: false, gated: true, milestones: { gate: 1, era2: 1 }, log: [{ y: 1929, d: 2, t: 'A quiet night.', k: 'story' }, { y: 1930, d: 0, t: 'Here the free part of the century ends: forty years.', k: 'milestone' }] });
+  assert.strictEqual(r.unlocked, true); assert.ok(!r.gated); assert.strictEqual(r.log.length, 1); assert.strictEqual(r.milestones.gate, undefined);
+  E.advance(r, 60, false); assert.ok(r.year > 1930 || r.day > 0, 'calendar moves');
 });
 t('the century ends in 1990 with an ending and a closing log line', () => {
   const s = E.newState({ seed: 3, unlocked: true }); s.year = 1989; s.day = 364; s.dayIndex = 99 * 365 + 364; s.funds = 1e6;

@@ -22,31 +22,34 @@ const T = (p, fn) => p.evaluate(fn);
   check('an event opens a sheet with choices', (await p.locator('#event-choices .choice').count()) >= 2);
   await p.click('#event-choices .choice'); await p.waitForTimeout(100);
   check('choosing resolves the event into the logbook', await T(p, () => !window.__keepthelight.state.pendingEvent && window.__keepthelight.state.log.some(l => l.k === 'event')));
-  // the gate
+  // no gate: the whole century is open
   await T(p, () => { const K = window.__keepthelight; K.setYear(1929, 362); K.give({ fuel: 500, funds: 1000 }); K.ff(6); });
-  await p.waitForSelector('#modal-gate:not([hidden])', { timeout: 5000 });
-  check('the free century stops at 1930 with the unlock sheet', await T(p, () => window.__keepthelight.state.gated && window.__keepthelight.state.year === 1930));
-  await p.click('#btn-gate-later'); await p.waitForTimeout(100);
-  await p.click('.tab[data-tab="more"]'); await p.click('#btn-unlock'); await p.waitForTimeout(200);
-  check('without Play Billing, unlock explains itself and stays locked', await T(p, () => !window.__keepthelight.state.unlocked && !document.getElementById('toast').hidden));
-  await T(p, () => window.__keepthelight.unlock());
-  check('unlock resumes the calendar', await T(p, () => window.__keepthelight.state.unlocked && !window.__keepthelight.state.gated));
+  await p.waitForTimeout(100); if (await p.isVisible('#modal-event')) { await p.click('#event-choices .choice'); await p.waitForTimeout(100); }
+  check('the calendar runs on past 1930 with no gate', await T(p, () => { const s = window.__keepthelight.state; return s.unlocked === true && !s.gated && (s.year > 1930 || (s.year === 1930 && s.day > 0)) && !document.getElementById('modal-gate'); }));
+  check('there is no unlock or restore button and no purchase wording', await T(p, () => !document.getElementById('btn-unlock') && !document.getElementById('btn-restore') && !document.getElementById('unlock-card') && [...document.scripts].map(x => x.getAttribute('src')).join() === 'js/data.js,js/engine.js,js/game.js' && !/unlock the rest|restore purchase|free part|are free|google play version/i.test(document.body.textContent)));
   // save, reload, continue
   const before = await T(p, () => { const K = window.__keepthelight; K.save(); return { y: K.state.year, w: K.state.bought.wick, f: Math.round(K.state.funds) }; });
   await p.reload(); await p.waitForSelector('#app:not([hidden])');
   const after = await T(p, () => { const K = window.__keepthelight; return { y: K.state.year, w: K.state.bought.wick, f: Math.round(K.state.funds), u: K.state.unlocked }; });
-  check('the save restores year, purchases and the unlock', after.y === before.y && after.w === before.w && after.u === true, JSON.stringify(after));
+  check('the save restores year, purchases and the open century', after.y === before.y && after.w === before.w && after.u === true, JSON.stringify(after));
   // corrupt saves are fail-soft (planted before the page's scripts run, in a fresh context)
-  for (const [label, junk] of [['truncated JSON', '{"run":{"year":"zzz","funds":"1e999","bought":{"x":1}},"meta":{"unlocked":"yes"}'], ['wrong types', '{"v":1,"run":{"year":"zzz","funds":"1e999","bought":{"x":1},"log":"no"},"meta":{"unlocked":"yes"},"lastSeen":"soon"}'], ['not an object', '42']]) {
+  for (const [label, junk] of [['truncated JSON', '{"run":{"year":"zzz","funds":"1e999","bought":{"x":1}},"meta":{"unlocked":"yes"}'], ['wrong types', '{"v":1,"run":{"year":"zzz","funds":"1e999","bought":{"x":1},"log":"no"},"meta":{"unlocked":"yes"},"lastSeen":"soon"}'], ['not an object', '42'], ['an old save stopped at 1930', '{"v":1,"run":{"year":1930,"day":0,"unlocked":false,"gated":true},"meta":{"unlocked":false}}']]) {
     const ctx = await b.newContext({ viewport: { width: 360, height: 640 } }); const q = await ctx.newPage(); const qerrs = [];
     q.on('pageerror', e => qerrs.push(e.message));
     await q.addInitScript(j => { try { localStorage.setItem('keepthelight.v1', j); } catch (e) { } }, junk);
     await q.goto(base); await q.waitForSelector('#app:not([hidden])');
-    check('a mangled save still loads: ' + label, qerrs.length === 0 && await T(q, () => { const s = window.__keepthelight.state; return s.year >= 1890 && isFinite(s.funds) && s.unlocked === false; }), qerrs.join(' | '));
+    check('a mangled save still loads: ' + label, qerrs.length === 0 && await T(q, () => { const s = window.__keepthelight.state; return s.year >= 1890 && isFinite(s.funds) && s.unlocked === true && !s.gated && document.getElementById('modal-gate') === null; }), qerrs.join(' | '));
     await ctx.close();
   }
+  // an old save code, pasted in, opens the whole century too
+  { const ctx = await b.newContext({ viewport: { width: 360, height: 640 } }); const q = await ctx.newPage(); const qerrs = []; q.on('pageerror', e => qerrs.push(e.message));
+    const code = Buffer.from(JSON.stringify({ run: { year: 1930, day: 0, funds: 50, unlocked: false, gated: true }, meta: { unlocked: false, completions: 0 } })).toString('base64');
+    q.on('dialog', d => d.type() === 'prompt' ? d.accept(code) : d.accept());
+    await q.goto(base); await q.waitForSelector('#app:not([hidden])'); await q.click('.tab[data-tab="more"]'); await q.click('#btn-import'); await q.waitForTimeout(200);
+    check('an old save code imports with the whole century open', qerrs.length === 0 && await T(q, () => { const s = window.__keepthelight.state; return s.year === 1930 && s.unlocked === true && !s.gated; }), qerrs.join(' | '));
+    await ctx.close(); }
   // the ending and a new headland
-  await T(p, () => { const K = window.__keepthelight; K.unlock(); K.setYear(1989, 363); K.give({ fuel: 500, funds: 1e6, standing: 900 }); K.state.flags.fight = true; K.state.legendBonus = 12; K.ff(5); });
+  await T(p, () => { const K = window.__keepthelight; K.setYear(1989, 363); K.give({ fuel: 500, funds: 1e6, standing: 900 }); K.state.flags.fight = true; K.state.legendBonus = 12; K.ff(5); });
   await p.waitForSelector('#modal-ending:not([hidden])', { timeout: 5000 });
   check('1990 ends the century as a legend', (await p.textContent('#ending-title')).includes('Legend'));
   check('new headlands unlock after a completion', (await p.locator('#sel-headland option').count()) === 4);

@@ -18,7 +18,7 @@ An incremental that ends. One lighthouse, 1890 to 1990, a century in a logbook.
 - No ads. No timers. No accounts. No consumables.
 - Fully offline. The light keeps earning while you are away.
 - Portrait, one-handed, large-text and high-contrast options, no twitch.
-- The first forty years are free. One optional purchase opens the rest of the century.
+- The whole century, 1890 to 1990: three endings and four headlands.
 
 ## Screenshot captions
 1. 1890–1990 · a story in a logbook
@@ -30,8 +30,8 @@ An incremental that ends. One lighthouse, 1890 to 1990, a century in a logbook.
 Game · Simulation. Tags: incremental, idle, text, story, offline.
 
 ## Declarations (to confirm in Console)
-- IARC questionnaire: no violence beyond text references to war and shipwreck; no gambling; no user interaction; no ads; in-app purchase: yes (one non-consumable).
+- IARC questionnaire: no violence beyond text references to war and shipwreck; no gambling; no user interaction; no ads; in-app purchases: no.
 - Target audience: 13+ (choose 13-15, 16-17, 18+). Not designed for children.
-- Data safety (Play edition): collects one data type, shares nothing. Financial info > Purchase history: collected yes, shared no, processed ephemerally yes, required, purpose App functionality. After a purchase the game sends the package name, product ID and Play purchase token over HTTPS to the acknowledgement service (the one in the fftremake repository's ack-endpoint folder), which checks it with Google Play and acknowledges it; nothing is kept on the server. Encrypted in transit: yes. Deletion: nothing is kept on the server; progress is removed by uninstalling or clearing the app's data. Privacy policy: the repo's Pages site, privacy.html.
+- Data safety: no data collected, no data shared, no network access; progress stays on the device. Privacy policy: the repo's Pages site, privacy.html.
 - Contact: elderon@augustinnovations.io
-- In-app product: `full_unlock`, non-consumable, $4.99, title "The rest of the century", description "Opens 1930 to 1990, all three endings, and the other headlands."
+- Price: paid download, suggested $4.99 (set in Play Console)

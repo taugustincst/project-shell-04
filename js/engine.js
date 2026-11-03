@@ -37,7 +37,7 @@ function newState(opts) {
     darkDays: 0, shipAcc: 0, salaryBonus: 0, legendBonus: 0, autoBonus: 0,
     stats: { shipsSaved: 0, wrecks: 0, rescues: 0, keepersRaised: 0, darkNights: 0, litNights: 0, fundsEarned: 0, eventsResolved: 0, clicks: 0 },
     log: [], logFired: {}, milestones: {},
-    unlocked: !!opts.unlocked, gated: false, ended: null, heirloom: null
+    unlocked: true, ended: null, heirloom: null
   };
   if (opts.heirloom && upgradeById[opts.heirloom] && upgradeById[opts.heirloom].heirloom) { s.bought[opts.heirloom] = 1; s.heirloom = opts.heirloom; }
   fireLogbook(s);
@@ -122,7 +122,6 @@ function stepDay(s, d, active) {
     s.day = 0; s.year++;
     const era = eraFor(s.year);
     if (era.id === 2) milestone(s, 'era2'); if (era.id === 3) milestone(s, 'era3');
-    if (!s.unlocked && s.year >= D.GATE_YEAR) { s.year = D.GATE_YEAR; s.gated = true; milestone(s, 'gate'); }
     if (s.year >= D.END_YEAR) { s.year = D.END_YEAR; finishRun(s); return; }
     d = derive(s);
   }
@@ -135,7 +134,7 @@ function stepDay(s, d, active) {
   }
 }
 
-/* The economy of one night. calendar=false is used for offline/gated earning: no story, no wrecks, no village. */
+/* The economy of one night. calendar=false is used for offline earning: no story, no wrecks, no village. */
 function economyDay(s, d, calendar, active) {
   // supply
   if (d.mains) { s.fuel = d.store; }
@@ -180,22 +179,17 @@ function economyDay(s, d, calendar, active) {
   return lit;
 }
 
-/* Advance real seconds of active play. Returns days stepped. Calendar stops for a pending event, the gate, or the ending. */
+/* Advance real seconds of active play. Returns days stepped. Calendar stops for a pending event or the ending. */
 function advance(s, dt, active) {
   if (!(dt > 0)) return 0;
   if (s.ended) return 0;
   if (s.pendingEvent) return 0;
   let d = derive(s);
-  if (s.gated) { // earning continues at the gate, the calendar does not
-    s.acc += dt; const days = Math.floor(s.acc / d.dayLen); s.acc -= days * d.dayLen;
-    for (let i = 0; i < days; i++) economyDay(s, d, false, active);
-    return days;
-  }
   s.acc += dt;
   let stepped = 0;
   while (s.acc >= d.dayLen) {
     s.acc -= d.dayLen; stepDay(s, d, active); stepped++;
-    if (s.ended || s.pendingEvent || s.gated) { s.acc = 0; break; }
+    if (s.ended || s.pendingEvent) { s.acc = 0; break; }
     if (stepped % 10 === 0) d = derive(s);
   }
   return stepped;
@@ -307,7 +301,7 @@ function legendReady(s) { const d = derive(s); return d.legend >= LEGEND_POINTS 
 function endingFor(s) { if (s.flags.prepare) return 'automated'; if (s.flags.fight) return legendReady(s) ? 'legend' : 'overruled'; return legendReady(s) ? 'legend' : 'automated'; }
 function finishRun(s) {
   if (s.ended) return;
-  const id = endingFor(s); s.ended = id; s.pendingEvent = null; s.gated = false;
+  const id = endingFor(s); s.ended = id; s.pendingEvent = null;
   pushLog(s, D.ENDINGS[id].log, 'ending');
 }
 function score(s) { const st = s.stats; return Math.max(0, Math.round(st.shipsSaved + st.rescues * 10 - st.wrecks * 25 + st.keepersRaised * 50 + s.village + s.standing)); }
@@ -318,10 +312,12 @@ function headlandOptions(meta) {
 }
 
 /* ---------- save hygiene ---------- */
+// Older builds wrote a 1930 stop line to the logbook; saves from them load without it.
+const RETIRED_LOG = 'Here the free part of the century ends';
 const num = (v, def, lo, hi) => { v = +v; if (!isFinite(v)) v = def; if (lo !== undefined && v < lo) v = lo; if (hi !== undefined && v > hi) v = hi; return v; };
 function sanitize(raw) {
   if (!raw || typeof raw !== 'object') return null;
-  const s = newState({ headland: raw.headland, prestige: raw.prestige, speedBonus: raw.speedBonus, seed: raw.seed, unlocked: raw.unlocked });
+  const s = newState({ headland: raw.headland, prestige: raw.prestige, speedBonus: raw.speedBonus, seed: raw.seed });
   s.log = []; s.logFired = {}; s.heirloom = typeof raw.heirloom === 'string' && upgradeById[raw.heirloom] ? raw.heirloom : null; s.bought = {};
   s.year = Math.round(num(raw.year, D.START_YEAR, D.START_YEAR, D.END_YEAR)); s.day = Math.round(num(raw.day, 0, 0, DAYS_PER_YEAR - 1));
   s.dayIndex = Math.round(num(raw.dayIndex, (s.year - D.START_YEAR) * DAYS_PER_YEAR + s.day, 0, 1e7)); s.acc = 0;
@@ -335,10 +331,10 @@ function sanitize(raw) {
   s.darkDays = Math.round(num(raw.darkDays, 0, 0, 60)); s.shipAcc = num(raw.shipAcc, 0, 0, 1);
   s.salaryBonus = num(raw.salaryBonus, 0, 0, 100); s.legendBonus = num(raw.legendBonus, 0, 0, 100); s.autoBonus = num(raw.autoBonus, 0, 0, 100);
   if (raw.stats && typeof raw.stats === 'object') for (const k in s.stats) s.stats[k] = Math.round(num(raw.stats[k], 0, 0, 1e9));
-  if (Array.isArray(raw.log)) s.log = raw.log.filter(l => l && typeof l.t === 'string').slice(-LOG_CAP).map(l => ({ y: Math.round(num(l.y, s.year)), d: Math.round(num(l.d, 0, 0, 364)), t: String(l.t).slice(0, 600), k: typeof l.k === 'string' ? l.k.slice(0, 12) : 'story' }));
+  if (Array.isArray(raw.log)) s.log = raw.log.filter(l => l && typeof l.t === 'string' && !l.t.startsWith(RETIRED_LOG)).slice(-LOG_CAP).map(l => ({ y: Math.round(num(l.y, s.year)), d: Math.round(num(l.d, 0, 0, 364)), t: String(l.t).slice(0, 600), k: typeof l.k === 'string' ? l.k.slice(0, 12) : 'story' }));
   if (raw.logFired && typeof raw.logFired === 'object') for (const k in raw.logFired) if (+k >= 0 && +k < D.LOGBOOK.length) s.logFired[k] = 1;
   if (raw.milestones && typeof raw.milestones === 'object') for (const k in raw.milestones) if (D.MILESTONES[k]) s.milestones[k] = 1;
-  s.unlocked = raw.unlocked === true; s.gated = raw.gated === true && !s.unlocked;
+  s.unlocked = true; // every save and save code, old or new, opens the whole century
   s.ended = (raw.ended === 'legend' || raw.ended === 'automated' || raw.ended === 'overruled') ? raw.ended : null;
   if (!s.log.length) fireLogbook(s);
   return s;

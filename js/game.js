@@ -1,25 +1,20 @@
 /* Keep the Light — UI, save, loop. Everything that touches the DOM lives here; the numbers live in engine.js. */
 (function () {
 'use strict';
-const E = window.KTL, D = E.D, B = window.KTL_BILLING;
+const E = window.KTL, D = E.D;
 const VERSION = '1.0.0';
 const SAVE_KEY = 'keepthelight.v1', BACKUP_KEY = 'keepthelight.v1.backup';
 const $ = id => document.getElementById(id);
-const params = new URLSearchParams(location.search);
-// ?dev=1 makes unlocking free for testing. Only on a local copy: the Play app opens the public site, and
-// the free unlock would otherwise be one link away for anyone and saved on their phone.
-const DEV = params.get('dev') === '1' && ['localhost', '127.0.0.1', ''].includes(location.hostname);
 
 /* ---------- persistent profile: the run + meta progress + settings ---------- */
 let profile = null; let S = null; // S is the live run state
-function freshMeta() { return { completions: 0, legends: 0, speedBonus: 0, headlands: {}, unlocked: false }; }
+function freshMeta() { return { completions: 0, legends: 0, speedBonus: 0, headlands: {} }; }
 function sanitizeMeta(m) {
   m = (m && typeof m === 'object') ? m : {};
   const n = (v, lo, hi) => { v = +v; return isFinite(v) ? Math.min(hi, Math.max(lo, v)) : lo; };
   const out = freshMeta();
   out.completions = Math.round(n(m.completions, 0, 1000)); out.legends = Math.round(n(m.legends, 0, 1000)); out.speedBonus = n(m.speedBonus, 0, 3);
   if (m.headlands && typeof m.headlands === 'object') for (const k in m.headlands) if (D.HEADLANDS[k]) out.headlands[k] = String(m.headlands[k]).slice(0, 12);
-  out.unlocked = m.unlocked === true;
   return out;
 }
 function sanitizeSettings(x) { x = (x && typeof x === 'object') ? x : {}; return { large: x.large === true, motion: x.motion === true, contrast: x.contrast === true, logOrder: x.logOrder === true, seenAway: true }; }
@@ -28,8 +23,7 @@ function load() {
   try { raw = JSON.parse(localStorage.getItem(SAVE_KEY)); } catch (e) { raw = null; try { localStorage.setItem(BACKUP_KEY, localStorage.getItem(SAVE_KEY) || ''); } catch (e2) { } }
   profile = { v: 1, meta: sanitizeMeta(raw && raw.meta), settings: sanitizeSettings(raw && raw.settings), lastSeen: raw && isFinite(+raw.lastSeen) ? +raw.lastSeen : 0 };
   S = (raw && raw.run) ? E.sanitize(raw.run) : null;
-  if (!S) S = E.newState({ unlocked: profile.meta.unlocked, speedBonus: profile.meta.speedBonus });
-  if (profile.meta.unlocked) { S.unlocked = true; S.gated = false; }
+  if (!S) S = E.newState({ speedBonus: profile.meta.speedBonus });
 }
 function save() {
   if (!S) return;
@@ -85,7 +79,6 @@ function render(force) {
   if (S.log.length !== lastLogCount) { if (activeTab !== 'log') { unreadLog += S.log.length - lastLogCount; $('log-badge').textContent = unreadLog; $('log-badge').hidden = unreadLog <= 0; } else renderLog(); lastLogCount = S.log.length; }
   if (activeTab === 'station') renderUpgrades(d);
   if (activeTab === 'village' && force) renderVillage();
-  $('unlock-card').hidden = S.unlocked;
 }
 
 let upgradeCards = {};
@@ -144,11 +137,6 @@ function maybeShowEvent() {
   E.eventChoices(S, ev).forEach((c, i) => { const b = document.createElement('button'); b.className = 'btn choice'; b.textContent = c.label; b.onclick = () => { E.resolveEvent(S, i); shownEvent = null; hide('modal-event'); dirtyUpgrades = true; save(); render(true); }; box.appendChild(b); });
   show('modal-event');
 }
-let gateShown = false;
-function maybeShowGate() {
-  if (S.gated && !S.unlocked && !gateShown) { gateShown = true; $('gate-note').textContent = DEV ? 'Test build: unlocking is free here.' : ''; show('modal-gate'); }
-  if (!S.gated || S.unlocked) gateShown = false;
-}
 let endingShown = false;
 function maybeShowEnding() {
   if (!S.ended || endingShown) return; endingShown = true;
@@ -166,28 +154,12 @@ function maybeShowEnding() {
 }
 function prestige() {
   const heirloom = $('sel-heirloom').value || null, headland = $('sel-headland').value || 'carrow';
-  S = E.newState({ headland, heirloom, prestige: profile.meta.completions, speedBonus: profile.meta.speedBonus, unlocked: profile.meta.unlocked });
-  endingShown = false; gateShown = false; dirtyUpgrades = true; lastLogCount = 0; hide('modal-ending'); save(); setTab('log'); render(true);
+  S = E.newState({ headland, heirloom, prestige: profile.meta.completions, speedBonus: profile.meta.speedBonus });
+  endingShown = false; dirtyUpgrades = true; lastLogCount = 0; hide('modal-ending'); save(); setTab('log'); render(true);
   toast(`A new century at ${D.HEADLANDS[headland].name}.`);
 }
 let toastTimer = 0;
 function toast(msg) { const t = $('toast'); t.textContent = msg; t.hidden = false; clearTimeout(toastTimer); toastTimer = setTimeout(() => { t.hidden = true; }, 2600); }
-
-/* ---------- unlock ---------- */
-function grantUnlock(source) { profile.meta.unlocked = true; S.unlocked = true; S.gated = false; gateShown = false; hide('modal-gate'); save(); dirtyUpgrades = true; render(true); toast(source === 'restore' ? 'Purchase restored. The century continues.' : 'The rest of the century is yours.'); }
-async function doUnlock() {
-  if (S.unlocked) { toast('Already unlocked.'); return; }
-  if (DEV) { grantUnlock('dev'); return; }
-  const r = await B.unlock();
-  if (r.ok) grantUnlock('buy');
-  else if (r.reason === 'unavailable') toast('Unlocking is available in the Google Play version of Keep the Light.');
-  else if (r.reason === 'cancelled') toast('No purchase made.');
-  else toast('The purchase could not be completed. Try again, or use Restore purchase.');
-}
-async function doRestore() {
-  const r = await B.restore();
-  if (r.ok) grantUnlock('restore'); else if (r.reason === 'unavailable') toast('Restore is available in the Google Play version.'); else toast('No purchase found for this Google account.');
-}
 
 /* ---------- loop ---------- */
 let last = 0, saveAt = 0, hiddenAt = 0;
@@ -196,7 +168,7 @@ function frame(now) {
   let dt = (now - last) / 1000; last = now;
   if (dt > 1) dt = 1; if (dt < 0) dt = 0;
   if (document.visibilityState === 'visible') { const before = S.log.length; E.advance(S, dt, true); }
-  maybeShowEvent(); maybeShowGate(); maybeShowEnding();
+  maybeShowEvent(); maybeShowEnding();
   render(false);
   if (now - saveAt > 10000) { saveAt = now; save(); }
   requestAnimationFrame(frame);
@@ -226,15 +198,12 @@ function init() {
   $('upgrades').addEventListener('click', e => { const b = e.target.closest('[data-buy]'); if (!b) return; const u = E.upgradeById[b.dataset.buy]; if (E.buy(S, u.id)) { save(); toast(`${u.name} — bought.`); render(true); } });
   $('log-order').addEventListener('change', e => { profile.settings.logOrder = e.target.checked; save(); renderLog(); });
   for (const k of ['large', 'motion', 'contrast']) $('opt-' + k).addEventListener('change', e => { profile.settings[k] = e.target.checked; applySettings(); save(); });
-  $('btn-unlock').addEventListener('click', doUnlock); $('btn-gate-unlock').addEventListener('click', doUnlock);
-  $('btn-restore').addEventListener('click', doRestore); $('btn-gate-restore').addEventListener('click', doRestore);
-  $('btn-gate-later').addEventListener('click', () => { hide('modal-gate'); toast('The light burns on. Come back when you are ready.'); });
   $('btn-away-ok').addEventListener('click', () => hide('modal-away'));
   $('btn-prestige').addEventListener('click', prestige);
   $('btn-ending-stay').addEventListener('click', () => { hide('modal-ending'); setTab('log'); });
   $('btn-export').addEventListener('click', async () => { const code = btoa(unescape(encodeURIComponent(JSON.stringify({ run: S, meta: profile.meta })))); try { await navigator.clipboard.writeText(code); toast('Save code copied.'); } catch (e) { prompt('Your save code:', code); } });
-  $('btn-import').addEventListener('click', () => { const code = prompt('Paste a save code:'); if (!code) return; try { const o = JSON.parse(decodeURIComponent(escape(atob(code.trim())))); const run = E.sanitize(o.run); if (!run) throw 0; S = run; profile.meta = sanitizeMeta(o.meta); if (profile.meta.unlocked) { S.unlocked = true; S.gated = false; } dirtyUpgrades = true; endingShown = false; gateShown = false; lastLogCount = 0; save(); render(true); toast('Save loaded.'); } catch (e) { toast('That code could not be read.'); } });
-  $('btn-reset').addEventListener('click', () => { if (!confirm('Start the century again from 1890? Your purchase and headlands stay; this run does not.')) return; S = E.newState({ unlocked: profile.meta.unlocked, speedBonus: profile.meta.speedBonus }); dirtyUpgrades = true; endingShown = false; gateShown = false; lastLogCount = 0; save(); setTab('log'); render(true); });
+  $('btn-import').addEventListener('click', () => { const code = prompt('Paste a save code:'); if (!code) return; try { const o = JSON.parse(decodeURIComponent(escape(atob(code.trim())))); const run = E.sanitize(o.run); if (!run) throw 0; S = run; profile.meta = sanitizeMeta(o.meta); dirtyUpgrades = true; endingShown = false; lastLogCount = 0; save(); render(true); toast('Save loaded.'); } catch (e) { toast('That code could not be read.'); } });
+  $('btn-reset').addEventListener('click', () => { if (!confirm('Start the century again from 1890? Your headlands stay; this run does not.')) return; S = E.newState({ speedBonus: profile.meta.speedBonus }); dirtyUpgrades = true; endingShown = false; lastLogCount = 0; save(); setTab('log'); render(true); });
   if (profile.lastSeen) applyOffline(Date.now() - profile.lastSeen);
   $('app').hidden = false; render(true); renderLog(); lastLogCount = S.log.length;
   if ('serviceWorker' in navigator && location.protocol !== 'file:') navigator.serviceWorker.register('sw.js').catch(() => { });
@@ -246,12 +215,12 @@ function init() {
 /* Test API for sims, screenshots and the smoke test. */
 window.__keepthelight = {
   get state() { return S; }, E, D, VERSION,
-  setYear(y, d) { S.year = Math.max(D.START_YEAR, Math.min(D.END_YEAR - 1, y | 0)); S.day = Math.max(0, Math.min(364, d | 0)); S.dayIndex = (S.year - D.START_YEAR) * 365 + S.day; S.gated = false; S.ended = null; dirtyUpgrades = true; render(true); },
+  setYear(y, d) { S.year = Math.max(D.START_YEAR, Math.min(D.END_YEAR - 1, y | 0)); S.day = Math.max(0, Math.min(364, d | 0)); S.dayIndex = (S.year - D.START_YEAR) * 365 + S.day; S.ended = null; dirtyUpgrades = true; render(true); },
   give(o) { for (const k of ['fuel', 'funds', 'standing', 'village']) if (o[k] != null) S[k] = +o[k]; render(true); },
   buyAll() { let n = 0; for (const u of D.UPGRADES) if (E.upgradeAvailable(S, u)) { S.bought[u.id] = u.max || 1; n++; } dirtyUpgrades = true; render(true); return n; },
   forceEvent(id) { const ok = E.forceEvent(S, id); maybeShowEvent(); return ok; },
-  ff(days) { let n = 0; const d = E.derive(S); n = E.advance(S, days * d.dayLen, false); maybeShowEvent(); maybeShowGate(); maybeShowEnding(); render(true); return n; },
-  unlock() { grantUnlock('dev'); }, finish() { E.finishRun(S); maybeShowEnding(); render(true); },
+  ff(days) { let n = 0; const d = E.derive(S); n = E.advance(S, days * d.dayLen, false); maybeShowEvent(); maybeShowEnding(); render(true); return n; },
+  finish() { E.finishRun(S); maybeShowEnding(); render(true); },
   save, reset() { localStorage.removeItem(SAVE_KEY); location.reload(); }, render: () => render(true), setTab
 };
 if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init); else init();

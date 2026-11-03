@@ -2,7 +2,7 @@
 (function (root) {
 'use strict';
 
-const START_YEAR = 1890, END_YEAR = 1990, GATE_YEAR = 1930;
+const START_YEAR = 1890, END_YEAR = 1990;
 
 /* Eras: the economy changes shape, not just the numbers. */
 const ERAS = [
@@ -442,7 +442,6 @@ const MILESTONES = {
   era2: 'The Board\'s circular calls it "the modern era". The lamp calls it Tuesday. Paraffin, wireless, and a war that has not finished starting.',
   era3: 'Peace, and a cable from the shore promised for the decade. The village is three streets. The lamp room smells of nothing.',
   electrified: 'Electrified. One switch, one bulb, one keeper not carrying oil up a hundred and twelve steps. The step count has not changed. I checked.',
-  gate: 'Here the free part of the century ends: forty years, one family, one light. The rest of the century — war, flood, helicopters, the letter with "automation" in it, and the ending — is the unlock.',
   village100: 'A hundred souls at the landing, by the parish count. There was a rock and a light. Now there is a place.',
   village500: 'Five hundred in the village. A post office, a chapel, two pubs. All of it in the lee of the light.',
   village2000: 'Two thousand people. The council calls it a town. The ships call it the light at Carrow, because that is what it is for.',
@@ -471,6 +470,6 @@ const ENDINGS = {
   }
 };
 
-const DATA = { START_YEAR, END_YEAR, GATE_YEAR, ERAS, HEADLANDS, UPGRADES, EVENTS, LOGBOOK, MILESTONES, SHIP_NAMES, ENDINGS };
+const DATA = { START_YEAR, END_YEAR, ERAS, HEADLANDS, UPGRADES, EVENTS, LOGBOOK, MILESTONES, SHIP_NAMES, ENDINGS };
 if (typeof module !== 'undefined' && module.exports) module.exports = DATA; else root.KTL_DATA = DATA;
 })(typeof window !== 'undefined' ? window : globalThis);

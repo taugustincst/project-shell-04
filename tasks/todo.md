@@ -6,13 +6,13 @@ Plan for v1.0 per HANDOFF.md. Tick as done; review at the bottom.
 - [x] Deterministic numbers engine (seeded RNG, Node + browser), era 1 economy
 - [x] Save: versioned key, sanitizer, fail-soft, elapsed-time clamping
 - [x] Headless sim with five strategies and the three other headlands
-- [x] `window.__keepthelight` test API, `?dev=1` free unlock
+- [x] `window.__keepthelight` test API
 ## Week 2 — content, endings, prestige
 - [x] Eras 2–3, 63 upgrades, 41 events (7 scheduled story beats), 58 logbook entries
 - [x] Three endings driven by the 1979 letter, legend points and standing
 - [x] Prestige: heirlooms, three headlands, pace bonus
-- [x] Offline earning (calendar frozen, 8 h cap); 1930 gate as a soft wall
-- [x] Play Billing (Digital Goods API, `full_unlock`); restore purchase
+- [x] Offline earning (calendar frozen, 8 h cap)
+- [x] Paid download (2026-11-03): the whole century is open from 1890; the 1930 gate, Play Billing and restore were removed
 ## Week 3 — ship prep
 - [x] PWA: manifest, service worker, icons, staged screenshot
 - [x] Engine unit tests (11) and Playwright smoke test (19 checks), CI + Pages workflows

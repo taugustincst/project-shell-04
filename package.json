@@ -4,7 +4,7 @@
   "private": true,
   "description": "Keep the Light: a lighthouse-keeper incremental that ends. HTML5 game packaged for Google Play.",
   "scripts": {
-    "test": "node tests/billing.test.js && node tests/engine.test.js && node tests/smoke.js",
+    "test": "node tests/engine.test.js && node tests/smoke.js",
     "sim": "node sim/sim.js all",
     "icons": "node tools/make-icons.js"
   },
