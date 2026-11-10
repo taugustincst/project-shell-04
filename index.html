@@ -60,6 +60,8 @@
     <div class="res"><span class="res-label">Village</span><span class="res-val" id="res-village-val">40</span><span class="res-sub" id="res-village-sub">souls</span></div>
   </section>
 
+  <div class="notice" id="notice" hidden></div>
+
   <button class="action" id="btn-click"><span id="btn-click-label">Haul oil up the stair</span><span class="action-sub" id="btn-click-sub">+6 gal</span></button>
 
   <nav class="tabs" role="tablist">
@@ -94,10 +96,11 @@
         <p class="muted">Progress is saved on this device automatically. Nothing leaves it.</p>
         <div class="row-btns"><button class="btn" id="btn-export">Copy save code</button><button class="btn" id="btn-import">Paste save code</button><button class="btn danger" id="btn-reset">Start the century again</button></div>
       </div>
+      <div class="card" id="unlock-card"></div>
       <div class="card about">
         <h2>About</h2>
-        <p>Keep the Light is an incremental that ends: one lighthouse, 1890 to 1990, a century of story in a keeper's logbook. No ads, no timers, no accounts, fully offline.</p>
-        <p class="muted">Version <span id="about-version">1.0.0</span> · <a href="privacy.html">Privacy</a> · © AugustInnovations LLC</p>
+        <p>Keep the Light is an incremental that ends: one lighthouse, 1890 to 1990, a century of story in a keeper's logbook. No ads, no timers, no accounts, fully offline. 1890 to 1930 is free; one purchase opens the rest of the century.</p>
+        <p class="muted">Version <span id="about-version">1.1.0</span> · <a href="privacy.html">Privacy</a> · © AugustInnovations LLC</p>
       </div>
     </section>
   </main>
@@ -138,11 +141,31 @@
   </div>
 </div>
 
+<!-- The rest of the century -->
+<div class="modal" id="modal-unlock" hidden role="dialog" aria-modal="true" aria-labelledby="u-title">
+  <div class="sheet">
+    <div class="sheet-date" id="u-sub">The rest of the century</div>
+    <h2 id="u-title">The rest of the century</h2>
+    <p>1890 to the first bulb in 1930 is free. The rest of the century adds:</p>
+    <ul class="unlock-list">
+      <li>1930 to 1990: the second war, the flood, mains power, radar and the helicopters</li>
+      <li>Tom's war, Mary and Jo, and sixty more years of the logbook</li>
+      <li>The 1979 letter, the fight for a manned light, and three endings</li>
+      <li>Three new headlands to keep after Carrow Point, each carrying one heirloom</li>
+    </ul>
+    <p class="muted">One purchase through Google Play. No ads and nothing else to buy. Your century carries on from 1930 with everything you have built.</p>
+    <p class="note" id="u-note" hidden></p>
+    <button class="btn primary" id="u-buy">Keep the rest of the century</button>
+    <div class="row-btns"><button class="btn" id="u-restore">Restore purchase</button><button class="btn" id="u-later">Not now</button></div>
+  </div>
+</div>
+
 <!-- Toast -->
 <div id="toast" class="toast" hidden></div>
 
 <script src="js/data.js"></script>
 <script src="js/engine.js"></script>
+<script src="js/billing.js"></script>
 <script src="js/game.js"></script>
 </body>
 </html>

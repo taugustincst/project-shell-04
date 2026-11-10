@@ -2,7 +2,7 @@
 (function (root) {
 'use strict';
 
-const START_YEAR = 1890, END_YEAR = 1990;
+const START_YEAR = 1890, END_YEAR = 1990, GATE_YEAR = 1930;
 
 /* Eras: the economy changes shape, not just the numbers. */
 const ERAS = [
@@ -104,7 +104,9 @@ const UPGRADES = [
   { id: 'solar', name: 'Solar panels', era: 3, cost: 35000, year: 1980, cat: 'Lamp', eff: { fuelEff: 0.5, auto: 1 }, desc: 'Glass on the roof of the generator house. Power from the sky on the days there is sky.' },
   { id: 'heritage', name: 'Heritage listing', era: 3, cost: 40000, needStanding: 700, year: 1980, cat: 'Village', eff: { legend: 3, standingRate: 1.2 }, desc: 'People with clipboards want to list the tower. You want them to list the keepers. You compromise on tea.' },
   { id: 'satnav', name: 'Satellite fix', era: 3, cost: 45000, year: 1985, cat: 'Signals', eff: { dues: 1.5, auto: 1 }, desc: 'The ships know where they are now, to the yard, from space. They still look for the light.' },
-  { id: 'endowment', name: 'Village endowment', era: 3, cost: 20000, costMult: 1.5, max: 8, needStanding: 300, cat: 'Village', eff: { legend: 1, standingRate: 1.05 }, desc: 'The station\'s surplus, given back: a reading room, a nurse, a boat for the school. A century of light, spent on the people who lived by it.' }
+  { id: 'endowment', name: 'Village endowment', era: 3, cost: 20000, costMult: 1.5, max: 10, needStanding: 300, cat: 'Village', eff: { legend: 1, standingRate: 1.05 }, desc: 'The station\'s surplus, given back: a reading room, a nurse, a boat for the school. A century of light, spent on the people who lived by it.' },
+  { id: 'works', name: 'Parish works', era: 3, cost: 25000, costMult: 1.35, max: 12, year: 1955, cat: 'Village', eff: { villageCapAdd: 250, standingRate: 1.03 }, desc: 'A sea wall, a bus shelter, a roof for the chapel, a road that does not flood. Nobody thanks the light for a drain. The drain is there because of the light.' },
+  { id: 'museum', name: 'Lamp-room museum', era: 3, cost: 60000, needStanding: 900, year: 1984, req: ['heritage'], cat: 'Village', eff: { legend: 2, trade: 1.1 }, desc: 'The old oil cans, the butter knives, the mooring rope, and a hundred years of logbook under glass. The keepers are in it. So is the kettle.' }
 ];
 
 /*
@@ -421,6 +423,33 @@ const LOGBOOK = [
   { y: 1984, d: 200, t: 'It does not rotate; it does not need me to. I rotate anyway. Somebody has to walk the gallery.' },
   { y: 1986, d: 140, t: 'Four generations of Rook in this book. The Board\'s historian came and counted. She cried at 1920, which was the correct place.' },
   { y: 1988, d: 250, t: 'The last supply boat. The last relief by sea. I kept the mooring rope. I do not know what for.' },
+  { y: 1946, d: 300, t: 'Tom is sleeping again, most nights. On the others he climbs the stair and sits with the lens until it is light. I do not ask. He does not log it.' },
+  { y: 1948, d: 150, t: 'The first holiday-makers off the Harrow bus, asking to see the light. I showed them the stair. Two went up. One came down and asked for tea.' },
+  { y: 1949, d: 330, t: 'Tom married Mary Fell from the post office, in the chapel the herring built. The light was lit for the wedding at three in the afternoon, against regulations. The Board was not invited.' },
+  { y: 1951, d: 60, t: 'First winter as Principal. Mother comes out on the Tuesday boat to inspect. She ran a finger along the lens frame and said nothing, which is a pass. — T. Rook' },
+  { y: 1952, d: 210, t: 'The fishing fleet half what it was. The herring have gone wherever herring go. The village has not. It has a school now, and the school has a view.' },
+  { y: 1954, d: 18, t: 'Wireless from a Norwegian coaster: "Light Carrow seen, thank you." Nobody thanks a light. I have pinned it above the desk.' },
+  { y: 1955, d: 280, t: 'The Board sends a form asking how many hours a day the keeper is "actively engaged". I wrote twenty-four. They sent it back.' },
+  { y: 1957, d: 120, t: 'Mary has the garden now. Cabbages where Mother grew roses where Ada grew nothing at all. The salt takes a third, as it always has.' },
+  { y: 1959, d: 340, t: 'Jo\'s first Christmas. We carried her up to see the beam go round. She laughed every time it came back, as if it might not.' },
+  { y: 1961, d: 75, t: 'A survey ship sounding the bay for a week. Her officer says our chart is out by forty yards. The rock has not moved in seventy years. I told him to check his ship.' },
+  { y: 1963, d: 30, t: 'The big freeze. Ice on the inside of the lantern glass. Mary and I scraped it every two hours with Mother\'s old butter knives.' },
+  { y: 1964, d: 250, t: 'Jo asked why the light has to go round. So ships know it is ours, I said. Then why not write the name on it, she said. I had no answer for her.' },
+  { y: 1966, d: 210, t: 'The football on the wireless, the whole village in the boathouse to hear it. We won. Jo ran up the hundred and twelve steps to tell the light.' },
+  { y: 1967, d: 80, t: 'Oil on the water off Cornwall, from a tanker on the Sevenstones, they say. Hundreds of miles away. I walked our tideline every morning for a month anyway.' },
+  { y: 1969, d: 200, t: 'Men on the moon, on the television in the Harrow Arms. Jo says they will be able to see our light from up there. I said they will be busy. She is writing to them.' },
+  { y: 1970, d: 290, t: 'Jo has started a log of her own, in pencil, in the back of mine. Wind, sea state, and which of the gulls are her friends.' },
+  { y: 1972, d: 45, t: 'Power cuts on the mainland three nights a week. The village by candlelight and the light on its own generator, the brightest thing for thirty miles. People walked out to the landing just to look at something lit.' },
+  { y: 1973, d: 330, t: 'The Board\'s auditor wanted receipts back to 1890. I gave him the logbook. He has been at the kitchen table for two days.' },
+  { y: 1975, d: 250, t: 'Jo has gone to the college at Aberdeen. She took the pencil log. The back of mine is empty from here.' },
+  { y: 1977, d: 157, t: 'The Jubilee. Bunting from the gallery to the boathouse. Mother would have said it spoiled the daymark. She would have hung it herself.' },
+  { y: 1978, d: 300, t: 'Jo home from Aberdeen with a ticket in marine engineering and opinions about the generator. Most of them are right.' },
+  { y: 1980, d: 60, t: 'The Board sent a man to photograph every room "for the record". He asked me to stand out of the frame. I stood out of the frame.' },
+  { y: 1981, d: 220, t: 'Jo has rewired the lamp room to a standard the Board has never seen and never will. It is better. I have logged it as maintenance.' },
+  { y: 1983, d: 40, t: 'First winter in charge. Dad rings from the village every night at ten to ask if the light is lit. I hold the receiver up to the window. — J. Rook' },
+  { y: 1985, d: 310, t: 'A school party from Harrow. A boy asked if I was the last lighthouse keeper. I said not yet. He wrote it down.' },
+  { y: 1987, d: 288, t: 'The great storm in the south, on the news. Here it was only a gale. We had the light, the wireless and the kettle, and listened to the rest of the country lose its trees.' },
+  { y: 1988, d: 40, t: 'Dad died in the village. The telescope went to the school. In his drawer, his last log line: "Light lit. All well." That was all of them, really.' },
   { y: 1989, d: 300, t: 'A storm like 1890\'s, by the old log. We kept the light. The computer kept it, and I watched the computer, which is a kind of keeping.' },
   // headland variants
   { y: 1890, d: 0, headland: 'skerra', t: 'Took charge of Skerra Head this day, with an heirloom from Carrow in the boat and ice on the landing in May. The Board\'s man did not get out of the launch. — A. Rook, Principal Keeper' },
@@ -441,6 +470,7 @@ const MILESTONES = {
   firstRescue: 'The {ship} struck the bank in the dark and the lifeboat went out and brought every soul ashore. A wreck is not the end of the story any more.',
   era2: 'The Board\'s circular calls it "the modern era". The lamp calls it Tuesday. Paraffin, wireless, and a war that has not finished starting.',
   era3: 'Peace, and a cable from the shore promised for the decade. The village is three streets. The lamp room smells of nothing.',
+  gate: 'Forty years, one family, one light. The free part of the century ends here, with the first bulb. The rest of the century is war, flood, helicopters, the letter with "automation" in it, and the ending. The light keeps earning while it waits.',
   electrified: 'Electrified. One switch, one bulb, one keeper not carrying oil up a hundred and twelve steps. The step count has not changed. I checked.',
   village100: 'A hundred souls at the landing, by the parish count. There was a rock and a light. Now there is a place.',
   village500: 'Five hundred in the village. A post office, a chapel, two pubs. All of it in the lee of the light.',
@@ -470,6 +500,6 @@ const ENDINGS = {
   }
 };
 
-const DATA = { START_YEAR, END_YEAR, ERAS, HEADLANDS, UPGRADES, EVENTS, LOGBOOK, MILESTONES, SHIP_NAMES, ENDINGS };
+const DATA = { START_YEAR, END_YEAR, GATE_YEAR, ERAS, HEADLANDS, UPGRADES, EVENTS, LOGBOOK, MILESTONES, SHIP_NAMES, ENDINGS };
 if (typeof module !== 'undefined' && module.exports) module.exports = DATA; else root.KTL_DATA = DATA;
 })(typeof window !== 'undefined' ? window : globalThis);

@@ -1,5 +1,5 @@
-// The playable game no longer lives on this site: it is a paid app on Google
-// Play. Browsers that installed the old offline copy run its service worker,
+// The playable game no longer lives on this site: it lives in the Google Play
+// app. Browsers that installed the old offline copy run its service worker,
 // which would keep serving the cached game. This replacement takes over,
 // deletes every cache, unregisters itself and reloads open tabs, so they show
 // the store page instead.

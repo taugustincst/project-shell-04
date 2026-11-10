@@ -7,6 +7,8 @@ const D = (typeof KTL_DATA !== 'undefined') ? KTL_DATA : require('./data.js');
 const DAY_BASE = 1.5;              // real seconds per game day at speed 1
 const DAYS_PER_YEAR = 365;
 const OFFLINE_CAP = 8 * 3600;      // seconds of away-time that still earn
+const OFFLINE_NIGHTS = 90;         // most nights an absence can earn, however fast the calendar runs
+const OFFLINE_NIGHT_SECS = 320;    // one night earned per this many real seconds away (8 hours = 90 nights)
 const EVENT_GAP = 75;              // minimum days between events
 const EVENT_CHANCE = 1 / 100;       // per day, once the gap has passed
 const LOG_CAP = 600;
@@ -37,7 +39,7 @@ function newState(opts) {
     darkDays: 0, shipAcc: 0, salaryBonus: 0, legendBonus: 0, autoBonus: 0,
     stats: { shipsSaved: 0, wrecks: 0, rescues: 0, keepersRaised: 0, darkNights: 0, litNights: 0, fundsEarned: 0, eventsResolved: 0, clicks: 0 },
     log: [], logFired: {}, milestones: {},
-    unlocked: true, ended: null, heirloom: null
+    unlocked: !!opts.unlocked, gated: false, ended: null, heirloom: null
   };
   if (opts.heirloom && upgradeById[opts.heirloom] && upgradeById[opts.heirloom].heirloom) { s.bought[opts.heirloom] = 1; s.heirloom = opts.heirloom; }
   fireLogbook(s);
@@ -122,6 +124,7 @@ function stepDay(s, d, active) {
     s.day = 0; s.year++;
     const era = eraFor(s.year);
     if (era.id === 2) milestone(s, 'era2'); if (era.id === 3) milestone(s, 'era3');
+    if (!s.unlocked && s.year >= D.GATE_YEAR) { s.year = D.GATE_YEAR; s.gated = true; milestone(s, 'gate'); }
     if (s.year >= D.END_YEAR) { s.year = D.END_YEAR; finishRun(s); return; }
     d = derive(s);
   }
@@ -185,11 +188,18 @@ function advance(s, dt, active) {
   if (s.ended) return 0;
   if (s.pendingEvent) return 0;
   let d = derive(s);
+  if (s.gated) { // at the end of the free century the light keeps earning; the calendar and the story wait
+    if (s.unlocked) { s.gated = false; } else {
+      s.acc += dt; const days = Math.min(5000, Math.floor(s.acc / d.dayLen)); s.acc = Math.min(s.acc - days * d.dayLen, d.dayLen);
+      for (let i = 0; i < days; i++) economyDay(s, d, false, active);
+      return days;
+    }
+  }
   s.acc += dt;
   let stepped = 0;
   while (s.acc >= d.dayLen) {
     s.acc -= d.dayLen; stepDay(s, d, active); stepped++;
-    if (s.ended || s.pendingEvent) { s.acc = 0; break; }
+    if (s.ended || s.pendingEvent || s.gated) { s.acc = 0; break; }
     if (stepped % 10 === 0) d = derive(s);
   }
   return stepped;
@@ -200,17 +210,22 @@ function offline(s, elapsedSeconds) {
   const secs = Math.max(0, Math.min(OFFLINE_CAP, +elapsedSeconds || 0));
   if (s.ended || secs < 30) return null;
   const d = derive(s);
-  const nights = Math.floor(secs / d.dayLen);
+  // Cap the nights, not just the seconds: the calendar can run a night in a quarter of a second,
+  // so a seconds cap alone handed a day-one save hundreds of years of earnings.
+  const nights = Math.min(OFFLINE_NIGHTS, Math.floor(secs / OFFLINE_NIGHT_SECS), Math.floor(secs / d.dayLen));
   if (nights < 1) return null;
   const before = { ships: s.stats.shipsSaved, funds: s.funds, dark: s.stats.darkNights };
   let dryAfter = -1;
   for (let i = 0; i < nights; i++) { const lit = economyDay(s, d, false, false); if (!lit && dryAfter < 0) dryAfter = i; }
   const sum = { nights, ships: s.stats.shipsSaved - before.ships, funds: s.funds - before.funds, dryAfter };
-  const t = dryAfter < 0 ? `Away ${nights} nights. The light kept: ${sum.ships} ships guided, £${sum.funds.toFixed(0)} to the purse.`
-    : `Away ${nights} nights. The store ran dry after ${dryAfter}; the light was dark the rest. ${sum.ships} ships guided, £${sum.funds.toFixed(0)} to the purse.`;
+  const away = awayText(secs);
+  const t = dryAfter < 0 ? `Away ${away}. The light kept: ${sum.ships} ships guided, £${sum.funds.toFixed(0)} to the purse.`
+    : `Away ${away}. The store ran dry after ${dryAfter}; the light was dark the rest. ${sum.ships} ships guided, £${sum.funds.toFixed(0)} to the purse.`;
   pushLog(s, t, 'away');
+  sum.away = away;
   return sum;
 }
+function awayText(secs) { const h = Math.floor(secs / 3600), m = Math.floor(secs / 60); return h >= 2 ? `${Math.min(h, 8)} hours` : h === 1 ? 'an hour' : `${m} minutes`; }
 
 /* ---------- actions ---------- */
 function click(s) { if (s.ended) return 0; const d = derive(s); const add = Math.min(d.click, Math.max(0, d.store - s.fuel)); s.fuel += add; s.stats.clicks++; return add; }
@@ -301,7 +316,7 @@ function legendReady(s) { const d = derive(s); return d.legend >= LEGEND_POINTS 
 function endingFor(s) { if (s.flags.prepare) return 'automated'; if (s.flags.fight) return legendReady(s) ? 'legend' : 'overruled'; return legendReady(s) ? 'legend' : 'automated'; }
 function finishRun(s) {
   if (s.ended) return;
-  const id = endingFor(s); s.ended = id; s.pendingEvent = null;
+  const id = endingFor(s); s.ended = id; s.pendingEvent = null; s.gated = false;
   pushLog(s, D.ENDINGS[id].log, 'ending');
 }
 function score(s) { const st = s.stats; return Math.max(0, Math.round(st.shipsSaved + st.rescues * 10 - st.wrecks * 25 + st.keepersRaised * 50 + s.village + s.standing)); }
@@ -311,8 +326,13 @@ function headlandOptions(meta) {
   return Object.values(D.HEADLANDS).filter(h => !h.unlockedBy || (h.unlockedBy === 'any' && meta.completions > 0) || (h.unlockedBy === 'legend' && meta.legends > 0));
 }
 
+/* ---------- the free century and the unlock ---------- */
+// Free: 1890 to the first bulb in 1930. full_unlock opens the rest of the century, the endings and the other headlands.
+function atGate(s) { return !s.unlocked && !s.ended && !!s.gated; }
+function unlock(s) { const was = s.gated; s.unlocked = true; s.gated = false; s.acc = 0; return was; }
+
 /* ---------- save hygiene ---------- */
-// Older builds wrote a 1930 stop line to the logbook; saves from them load without it.
+// The first gate's wording, replaced in 1.1: saves that carry it load without it (the gate writes the new line again).
 const RETIRED_LOG = 'Here the free part of the century ends';
 const num = (v, def, lo, hi) => { v = +v; if (!isFinite(v)) v = def; if (lo !== undefined && v < lo) v = lo; if (hi !== undefined && v > hi) v = hi; return v; };
 function sanitize(raw) {
@@ -334,12 +354,17 @@ function sanitize(raw) {
   if (Array.isArray(raw.log)) s.log = raw.log.filter(l => l && typeof l.t === 'string' && !l.t.startsWith(RETIRED_LOG)).slice(-LOG_CAP).map(l => ({ y: Math.round(num(l.y, s.year)), d: Math.round(num(l.d, 0, 0, 364)), t: String(l.t).slice(0, 600), k: typeof l.k === 'string' ? l.k.slice(0, 12) : 'story' }));
   if (raw.logFired && typeof raw.logFired === 'object') for (const k in raw.logFired) if (+k >= 0 && +k < D.LOGBOOK.length) s.logFired[k] = 1;
   if (raw.milestones && typeof raw.milestones === 'object') for (const k in raw.milestones) if (D.MILESTONES[k]) s.milestones[k] = 1;
-  s.unlocked = true; // every save and save code, old or new, opens the whole century
+
+  // A save never carries the unlock: Google Play says whether it is owned (game.js unlocks a loaded save then).
+  s.unlocked = false;
+  s.gated = !!raw.gated || s.year > D.GATE_YEAR || (s.year === D.GATE_YEAR && s.day > 0);
+  if (s.gated) { s.year = Math.max(s.year, D.GATE_YEAR); }
   s.ended = (raw.ended === 'legend' || raw.ended === 'automated' || raw.ended === 'overruled') ? raw.ended : null;
   if (!s.log.length) fireLogbook(s);
+  if (s.gated && !s.log.some(l => l.t === D.MILESTONES.gate)) { delete s.milestones.gate; milestone(s, 'gate'); }
   return s;
 }
 
-const ENGINE = { D, DAY_BASE, DAYS_PER_YEAR, OFFLINE_CAP, LEGEND_POINTS, LEGEND_STANDING, upgradeById, eventById, newState, derive, eraFor, isWar, hName, fmtDate, advance, offline, click, upgradeCost, upgradeAvailable, standingOk, visibleUpgrades, legendReady, canBuy, buy, pickEvent, eventChoices, resolveEvent, forceEvent, endingFor, finishRun, score, heirloomOptions, headlandOptions, sanitize, pushLog, rand };
+const ENGINE = { D, DAY_BASE, DAYS_PER_YEAR, OFFLINE_CAP, OFFLINE_NIGHTS, OFFLINE_NIGHT_SECS, atGate, unlock, LEGEND_POINTS, LEGEND_STANDING, upgradeById, eventById, newState, derive, eraFor, isWar, hName, fmtDate, advance, offline, click, upgradeCost, upgradeAvailable, standingOk, visibleUpgrades, legendReady, canBuy, buy, pickEvent, eventChoices, resolveEvent, forceEvent, endingFor, finishRun, score, heirloomOptions, headlandOptions, sanitize, pushLog, rand };
 if (typeof module !== 'undefined' && module.exports) module.exports = ENGINE; else root.KTL = ENGINE;
 })(typeof window !== 'undefined' ? window : globalThis);

@@ -1,5 +1,5 @@
 name: Deploy the store page to Pages
-# The game is a paid app on Google Play, so the site no longer serves the
+# The game lives in the Google Play app, so the site no longer serves the
 # playable game. It publishes only the store page (site/index.html), the
 # privacy policy the Play listing links to, the store graphics, and a
 # service worker that removes old offline copies of the game from browsers
