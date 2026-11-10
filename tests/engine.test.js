@@ -6,16 +6,26 @@ t('same seed, same century', () => {
   const play = () => { const s = E.newState({ seed: 42, unlocked: true }); for (let i = 0; i < 20000; i++) { E.advance(s, 1, true); if (s.pendingEvent) E.resolveEvent(s, 0); E.click(s); const v = E.visibleUpgrades(s).filter(u => E.canBuy(s, u.id)); if (v.length) E.buy(s, v[0].id); } return JSON.stringify([s.year, s.day, s.funds, s.stats, s.log.length]); };
   assert.strictEqual(play(), play());
 });
-t('the calendar runs straight through 1930 with no gate', () => {
-  const s = E.newState({ seed: 1 }); assert.strictEqual(s.unlocked, true); s.bought.contract = 4; s.bought.store = 4; s.funds = 1e6; s.year = 1929; s.day = 360; s.dayIndex = 39 * 365 + 360;
-  E.advance(s, 60, false); assert.ok(s.year === 1930 && s.day > 0, 'past 1930 day 0'); assert.ok(!s.gated);
+t('the free century holds at 1930 and keeps earning; the unlock carries the same run on', () => {
+  const s = E.newState({ seed: 1 }); assert.strictEqual(s.unlocked, false); s.bought.contract = 4; s.bought.store = 4; s.funds = 1000; s.year = 1929; s.day = 360; s.dayIndex = 39 * 365 + 360;
+  for (let i = 0; i < 200 && !s.gated; i++) { E.advance(s, 5, false); if (s.pendingEvent) E.resolveEvent(s, 0); }
+  assert.ok(s.gated && E.atGate(s)); assert.strictEqual(s.year, 1930); assert.strictEqual(s.day, 0);
+  assert.ok(s.log.some(l => l.t === D.MILESTONES.gate), 'the gate line is in the logbook'); assert.ok(s.log.some(l => /^Electrification/.test(l.t)), 'the free century ends on the first bulb');
+  const f = s.funds, day = s.dayIndex; E.advance(s, 30, true);
+  assert.ok(s.funds > f, 'earning at the gate'); assert.strictEqual(s.dayIndex, day, 'calendar waits'); assert.strictEqual(s.pendingEvent, null, 'no events at the gate');
+  assert.ok(!/unlock|restore|removed/i.test(D.MILESTONES.gate.replace('free part', '')), 'the gate line never talks about unlocking or restored features');
+  assert.strictEqual(E.unlock(s), true); assert.ok(!s.gated && s.unlocked);
   for (let i = 0; i < 5000 && s.year < 1931; i++) { E.advance(s, 5, false); if (s.pendingEvent) E.resolveEvent(s, 0); }
-  assert.ok(s.year >= 1931, 'into 1931'); assert.ok(!s.log.some(l => /free part|the unlock/i.test(l.t)), 'no stop line in the logbook');
+  assert.ok(s.year >= 1931, 'into 1931 on the same run');
 });
-t('old saves and save codes stopped at 1930 load with the whole century open', () => {
-  const r = E.sanitize({ year: 1930, day: 0, funds: 100, fuel: 100, unlocked: false, gated: true, milestones: { gate: 1, era2: 1 }, log: [{ y: 1929, d: 2, t: 'A quiet night.', k: 'story' }, { y: 1930, d: 0, t: 'Here the free part of the century ends: forty years.', k: 'milestone' }] });
-  assert.strictEqual(r.unlocked, true); assert.ok(!r.gated); assert.strictEqual(r.log.length, 1); assert.strictEqual(r.milestones.gate, undefined);
-  E.advance(r, 60, false); assert.ok(r.year > 1930 || r.day > 0, 'calendar moves');
+t('a save never carries the unlock, and a save past 1930 waits at the gate where it is', () => {
+  const a = E.sanitize({ year: 1925, day: 3, unlocked: true }); assert.strictEqual(a.unlocked, false); assert.ok(!a.gated);
+  const b = E.sanitize({ year: 1962, day: 40, funds: 100, unlocked: true }); assert.strictEqual(b.unlocked, false); assert.ok(b.gated); assert.strictEqual(b.year, 1962);
+  assert.ok(b.log.some(l => l.t === D.MILESTONES.gate));
+  const d = b.dayIndex; E.advance(b, 60, true); assert.strictEqual(b.dayIndex, d);
+  E.unlock(b); E.advance(b, 60, false); assert.ok(b.dayIndex > d, 'unlocked, the calendar moves');
+  const old = E.sanitize({ year: 1930, day: 0, gated: true, milestones: { gate: 1 }, log: [{ y: 1930, d: 0, t: 'Here the free part of the century ends: forty years.', k: 'milestone' }] });
+  assert.ok(old.gated); assert.strictEqual(old.log.filter(l => /free part/.test(l.t)).length, 1, 'old wording swapped for the new line');
 });
 t('the century ends in 1990 with an ending and a closing log line', () => {
   const s = E.newState({ seed: 3, unlocked: true }); s.year = 1989; s.day = 364; s.dayIndex = 99 * 365 + 364; s.funds = 1e6;
@@ -26,17 +36,26 @@ t('fighting with the case made is a legend; preparing is automation', () => {
   const s = E.newState({ seed: 3, unlocked: true }); s.year = 1989; s.standing = 1000; s.flags.fight = true; s.legendBonus = 12; assert.strictEqual(E.endingFor(s), 'legend');
   s.legendBonus = 0; assert.strictEqual(E.endingFor(s), 'overruled'); s.flags.prepare = true; assert.strictEqual(E.endingFor(s), 'automated');
 });
-t('offline earns but never moves the calendar, and is capped', () => {
-  const s = E.newState({ seed: 5, unlocked: true }); s.bought.contract = 4; s.bought.store = 3; s.funds = 500; const y = s.year, d = s.day, f = s.funds;
-  const sum = E.offline(s, 3 * 24 * 3600); assert.ok(sum && sum.nights > 0); assert.strictEqual(s.year, y); assert.strictEqual(s.day, d); assert.ok(sum.nights <= Math.floor(E.OFFLINE_CAP / E.derive(s).dayLen) + 1, 'capped');
-  assert.ok(s.log[s.log.length - 1].k === 'away');
+t('offline earns but never moves the calendar, and is capped by nights', () => {
+  const s = E.newState({ seed: 5, unlocked: true }); s.bought.contract = 4; s.bought.store = 3; s.funds = 500; const y = s.year, d = s.day;
+  const sum = E.offline(s, 3 * 24 * 3600); assert.ok(sum && sum.nights > 0); assert.strictEqual(s.year, y); assert.strictEqual(s.day, d); assert.ok(sum.nights <= E.OFFLINE_NIGHTS, 'capped');
+  assert.ok(s.log[s.log.length - 1].k === 'away'); assert.ok(/^Away 8 hours/.test(s.log[s.log.length - 1].t), 'says how long, not how many nights');
   assert.strictEqual(E.offline(s, -5000), null, 'clock going backwards earns nothing'); assert.strictEqual(E.offline(s, NaN), null);
+});
+t('offline magnitude: a day-one save left 8 hours cannot buy the oil years', () => {
+  const tree = D.UPGRADES.filter(u => u.era === 1).reduce((a, u) => { let c = 0; for (let k = 0; k < (u.max || 1); k++) c += Math.round(u.cost * Math.pow(u.costMult || 1, k)); return a + c; }, 0);
+  const s = E.newState({ seed: 5 }); const f = s.funds; const sum = E.offline(s, 8 * 3600);
+  assert.ok(s.funds - f < tree * 0.1, `£${(s.funds - f).toFixed(0)} of a £${tree} tree`); assert.ok(sum.nights <= 90);
+  const fast = E.newState({ seed: 5, speedBonus: 1.5 }); fast.bought.routine = 1; const g = fast.funds; const r = E.offline(fast, 8 * 3600);
+  assert.ok(r.nights <= 90 && fast.funds - g < tree * 0.1, 'a faster calendar earns no more nights');
+  const late = E.newState({ seed: 5, unlocked: true }); late.year = 1975; for (const u of D.UPGRADES) if (u.era <= 2) late.bought[u.id] = u.max || 1; late.funds = 0;
+  const lr = E.offline(late, 8 * 3600); const perDay = E.derive(late).incomePerDay; assert.ok(late.funds <= perDay * 90 + 1, 'at most 90 nights of income, late too');
 });
 t('sanitize survives garbage and clamps absurd values', () => {
   assert.strictEqual(E.sanitize(null), null); assert.strictEqual(E.sanitize('x'), null);
   const s = E.sanitize({ year: 2500, day: -4, fuel: 'NaN', funds: Infinity, standing: -9, village: 1e99, bought: { nope: 3, store: 99, wick: '1' }, log: [{ t: 7 }, { t: 'ok', y: 'q' }], pendingEvent: 'nonsense', ended: 'wat', mods: [{ key: 'range', mult: 'x' }, { key: 'range', mult: 0.5, until: 10 }], headland: 'atlantis', stats: { shipsSaved: -3, wrecks: 'many' } });
   assert.strictEqual(s.year, D.END_YEAR); assert.strictEqual(s.day, 0); assert.strictEqual(s.fuel, 0); assert.ok(s.funds <= 1e12); assert.strictEqual(s.standing, 0); assert.strictEqual(s.village, 1e7);
-  assert.strictEqual(s.bought.nope, undefined); assert.strictEqual(s.bought.store, 4); assert.strictEqual(s.bought.wick, 1); assert.strictEqual(s.log.length, 1); assert.strictEqual(s.pendingEvent, null); assert.strictEqual(s.ended, null);
+  assert.strictEqual(s.bought.nope, undefined); assert.strictEqual(s.bought.store, 4); assert.strictEqual(s.bought.wick, 1); assert.strictEqual(s.log.filter(l => l.k !== 'milestone').length, 1); assert.strictEqual(s.pendingEvent, null); assert.strictEqual(s.ended, null);
   assert.strictEqual(s.mods.length, 1); assert.strictEqual(s.headland, 'carrow'); assert.strictEqual(s.stats.shipsSaved, 0); assert.strictEqual(s.stats.wrecks, 0);
 });
 t('a sanitized save round-trips', () => {

@@ -2,9 +2,12 @@
 (function () {
 'use strict';
 const E = window.KTL, D = E.D;
-const VERSION = '1.0.0';
+const VERSION = '1.1.0';
 const SAVE_KEY = 'keepthelight.v1', BACKUP_KEY = 'keepthelight.v1.backup';
 const $ = id => document.getElementById(id);
+const BILL = window.createBilling({ storageKey: 'keepthelight.unlock', productId: 'full_unlock' });
+const owned = () => !!BILL.state.owned;
+let unlockReason = null, gateSeen = false;
 
 /* ---------- persistent profile: the run + meta progress + settings ---------- */
 let profile = null; let S = null; // S is the live run state
@@ -20,15 +23,26 @@ function sanitizeMeta(m) {
 function sanitizeSettings(x) { x = (x && typeof x === 'object') ? x : {}; return { large: x.large === true, motion: x.motion === true, contrast: x.contrast === true, logOrder: x.logOrder === true, seenAway: true }; }
 function load() {
   let raw = null;
-  try { raw = JSON.parse(localStorage.getItem(SAVE_KEY)); } catch (e) { raw = null; try { localStorage.setItem(BACKUP_KEY, localStorage.getItem(SAVE_KEY) || ''); } catch (e2) { } }
+  try { raw = JSON.parse(localStorage.getItem(SAVE_KEY)); } catch (e) {
+    raw = null; let bad = null; try { bad = localStorage.getItem(SAVE_KEY); } catch (e2) { }
+    // A save that fails to parse is set aside, and the last good copy is tried before starting fresh.
+    try { const good = JSON.parse(localStorage.getItem(BACKUP_KEY)); if (good && good.run) raw = good; } catch (e3) { }
+    try { localStorage.setItem(BACKUP_KEY + '.bad', bad || ''); } catch (e4) { }
+  }
   profile = { v: 1, meta: sanitizeMeta(raw && raw.meta), settings: sanitizeSettings(raw && raw.settings), lastSeen: raw && isFinite(+raw.lastSeen) ? +raw.lastSeen : 0 };
   S = (raw && raw.run) ? E.sanitize(raw.run) : null;
-  if (!S) S = E.newState({ speedBonus: profile.meta.speedBonus });
+  if (!S) S = E.newState({ speedBonus: profile.meta.speedBonus, unlocked: owned() });
+  if (owned()) E.unlock(S);
+  gateSeen = E.atGate(S);
 }
 function save() {
   if (!S) return;
   profile.lastSeen = Date.now();
-  try { localStorage.setItem(SAVE_KEY, JSON.stringify({ v: 1, run: S, meta: profile.meta, settings: profile.settings, lastSeen: profile.lastSeen })); } catch (e) { }
+  try {
+    const text = JSON.stringify({ v: 1, run: S, meta: profile.meta, settings: profile.settings, lastSeen: profile.lastSeen });
+    const prev = localStorage.getItem(SAVE_KEY); if (prev) { try { JSON.parse(prev); localStorage.setItem(BACKUP_KEY, prev); } catch (e) { } }
+    localStorage.setItem(SAVE_KEY, text);
+  } catch (e) { }
 }
 
 /* ---------- formatting ---------- */
@@ -56,6 +70,12 @@ function render(force) {
   const d = E.derive(S), era = d.era, h = D.HEADLANDS[S.headland];
   $('hdr-date').textContent = `${h.name} · ${S.year} · day ${S.day + 1}`;
   $('hdr-era').textContent = era.name;
+  const held = E.atGate(S), n = $('notice');
+  if (held !== (n.dataset.held === '1')) {
+    n.dataset.held = held ? '1' : '0'; n.hidden = !held;
+    n.innerHTML = held ? `<span>${S.year === D.GATE_YEAR ? 'The first bulb, 1930. The light keeps earning while the rest of the century waits.' : S.year + '. The light keeps earning while the rest of the century waits.'}</span><button class="btn" id="btn-held">See the rest of the century</button>` : '';
+    if (held) $('btn-held').onclick = () => showUnlock('held');
+  }
   const lit = S.darkDays === 0 && (S.fuel >= d.fuelUse || d.standby);
   $('scene').classList.toggle('dark', !lit);
   $('scene-light').textContent = S.darkDays > 0 ? 'Light out by order' : lit ? 'Light lit' : (d.mains ? 'Light lit' : 'DARK — no ' + era.fuelName.toLowerCase());
@@ -141,7 +161,7 @@ let endingShown = false;
 function maybeShowEnding() {
   if (!S.ended || endingShown) return; endingShown = true;
   const meta = profile.meta;
-  if (!S.flags.counted) { S.flags.counted = true; meta.completions++; if (S.ended === 'legend') meta.legends++; meta.headlands[S.headland] = S.ended; meta.speedBonus = Math.min(1.5, meta.speedBonus + 0.15); save(); }
+  if (!S.flags.counted) { S.flags.counted = true; meta.completions++; if (S.ended === 'legend') meta.legends++; meta.headlands[S.headland] = S.ended; meta.speedBonus = Math.min(1.5, meta.speedBonus + (meta.completions === 1 ? 0.25 : 0.15)); save(); }
   const en = D.ENDINGS[S.ended], hn = D.HEADLANDS[S.headland].name;
   $('ending-title').textContent = en.title.replace(/\{headland\}/g, hn); $('ending-text').textContent = en.text.replace(/\{headland\}/g, hn);
   const st = S.stats;
@@ -154,9 +174,40 @@ function maybeShowEnding() {
 }
 function prestige() {
   const heirloom = $('sel-heirloom').value || null, headland = $('sel-headland').value || 'carrow';
-  S = E.newState({ headland, heirloom, prestige: profile.meta.completions, speedBonus: profile.meta.speedBonus });
+  S = E.newState({ headland, heirloom, prestige: profile.meta.completions, speedBonus: profile.meta.speedBonus, unlocked: owned() }); gateSeen = false;
   endingShown = false; dirtyUpgrades = true; lastLogCount = 0; hide('modal-ending'); save(); setTab('log'); render(true);
   toast(`A new century at ${D.HEADLANDS[headland].name}.`);
+}
+/* ---------- the rest of the century ---------- */
+function showUnlock(reason) { unlockReason = reason; renderUnlock(); show('modal-unlock'); }
+function unlockMsg() {
+  const b = BILL.state;
+  if (owned()) return 'The whole century is yours. Thank you.';
+  if (!b.available) return 'The rest of the century is unlocked in the Google Play edition of Keep the Light.';
+  if (b.pending) return 'Your purchase is waiting for the payment to clear. 1930 goes on as soon as Google Play confirms it.';
+  if (b.error) return b.error;
+  if (b.busy) return 'Waiting for Google Play…';
+  return '';
+}
+function renderUnlock() {
+  const b = BILL.state, msg = unlockMsg(), note = $('u-note');
+  $('u-sub').textContent = (unlockReason === 'gate' || unlockReason === 'held') ? `${D.HEADLANDS[S.headland].name} · ${S.year} · ${fmtMoney(S.funds)} in the purse` : 'Keep the Light';
+  note.hidden = !msg; note.textContent = msg;
+  $('u-buy').textContent = b.price ? `Keep the rest of the century · ${b.price}` : 'Keep the rest of the century';
+  $('u-buy').disabled = !b.available || b.busy || b.pending || owned(); $('u-restore').disabled = !b.available || b.busy;
+  $('u-later').textContent = (unlockReason === 'gate' || unlockReason === 'held') ? 'Not now (the light keeps earning)' : 'Not now';
+  renderUnlockCard();
+}
+function renderUnlockCard() {
+  const c = $('unlock-card'); if (!c) return; const msg = unlockMsg();
+  c.innerHTML = owned() ? `<h2>The whole century</h2><p class="muted small">${msg}</p>` : `<h2>The rest of the century</h2><p class="muted small">1890 to the first bulb in 1930 is free. One purchase through Google Play opens 1930 to 1990, three endings and three more headlands.</p>${msg ? `<p class="note">${msg}</p>` : ''}<button class="btn primary" id="btn-unlock-card">See the rest of the century</button>`;
+  const b = $('btn-unlock-card'); if (b) b.onclick = () => showUnlock('more');
+}
+function unlockedNow() {
+  const wasHeld = E.atGate(S); E.unlock(S); gateSeen = false; save(); dirtyUpgrades = true; renderUnlockCard();
+  if (!$('modal-unlock').hidden) { hide('modal-unlock'); unlockReason = null; }
+  toast(wasHeld ? `The whole century is yours. ${S.year} goes on.` : 'The whole century is yours. Thank you.');
+  render(true);
 }
 let toastTimer = 0;
 function toast(msg) { const t = $('toast'); t.textContent = msg; t.hidden = false; clearTimeout(toastTimer); toastTimer = setTimeout(() => { t.hidden = true; }, 2600); }
@@ -169,6 +220,7 @@ function frame(now) {
   if (dt > 1) dt = 1; if (dt < 0) dt = 0;
   if (document.visibilityState === 'visible') { const before = S.log.length; E.advance(S, dt, true); }
   maybeShowEvent(); maybeShowEnding();
+  if (E.atGate(S) && !gateSeen) { gateSeen = true; save(); dirtyUpgrades = true; render(true); showUnlock('gate'); }
   render(false);
   if (now - saveAt > 10000) { saveAt = now; save(); }
   requestAnimationFrame(frame);
@@ -176,7 +228,7 @@ function frame(now) {
 function applyOffline(elapsedMs) {
   const secs = elapsedMs / 1000; if (!(secs > 60)) return;
   const sum = E.offline(S, secs); if (!sum) return;
-  $('away-text').textContent = (sum.dryAfter < 0 ? `${sum.nights} nights. The light kept: ${fmtN(sum.ships)} ships guided and ${fmtMoney(sum.funds)} to the purse.` : `${sum.nights} nights. The store ran dry after ${sum.dryAfter}; the light was dark the rest. ${fmtN(sum.ships)} ships guided, ${fmtMoney(sum.funds)} to the purse.`) + (secs > E.OFFLINE_CAP ? ' (The station earns for up to eight hours away.)' : '');
+  $('away-text').textContent = (sum.dryAfter < 0 ? `${sum.away}. The light kept: ${fmtN(sum.ships)} ships guided and ${fmtMoney(sum.funds)} to the purse.` : `${sum.away}. The store ran dry after ${sum.dryAfter} nights; the light was dark the rest. ${fmtN(sum.ships)} ships guided, ${fmtMoney(sum.funds)} to the purse.`) + (secs > E.OFFLINE_CAP ? ' (The station earns for up to eight hours away.)' : '');
   show('modal-away'); save();
 }
 document.addEventListener('visibilitychange', () => {
@@ -199,23 +251,27 @@ function init() {
   $('log-order').addEventListener('change', e => { profile.settings.logOrder = e.target.checked; save(); renderLog(); });
   for (const k of ['large', 'motion', 'contrast']) $('opt-' + k).addEventListener('change', e => { profile.settings[k] = e.target.checked; applySettings(); save(); });
   $('btn-away-ok').addEventListener('click', () => hide('modal-away'));
+  $('u-buy').onclick = () => BILL.buy(); $('u-restore').onclick = () => BILL.restore();
+  $('u-later').onclick = () => { hide('modal-unlock'); unlockReason = null; render(true); };
+  BILL.onChange(st => { if (st.owned) { if (!S.unlocked) unlockedNow(); else renderUnlockCard(); } else { if (!$('modal-unlock').hidden) renderUnlock(); renderUnlockCard(); } });
   $('btn-prestige').addEventListener('click', prestige);
   $('btn-ending-stay').addEventListener('click', () => { hide('modal-ending'); setTab('log'); });
   $('btn-export').addEventListener('click', async () => { const code = btoa(unescape(encodeURIComponent(JSON.stringify({ run: S, meta: profile.meta })))); try { await navigator.clipboard.writeText(code); toast('Save code copied.'); } catch (e) { prompt('Your save code:', code); } });
-  $('btn-import').addEventListener('click', () => { const code = prompt('Paste a save code:'); if (!code) return; try { const o = JSON.parse(decodeURIComponent(escape(atob(code.trim())))); const run = E.sanitize(o.run); if (!run) throw 0; S = run; profile.meta = sanitizeMeta(o.meta); dirtyUpgrades = true; endingShown = false; lastLogCount = 0; save(); render(true); toast('Save loaded.'); } catch (e) { toast('That code could not be read.'); } });
-  $('btn-reset').addEventListener('click', () => { if (!confirm('Start the century again from 1890? Your headlands stay; this run does not.')) return; S = E.newState({ speedBonus: profile.meta.speedBonus }); dirtyUpgrades = true; endingShown = false; lastLogCount = 0; save(); setTab('log'); render(true); });
+  $('btn-import').addEventListener('click', () => { const code = prompt('Paste a save code:'); if (!code) return; try { const o = JSON.parse(decodeURIComponent(escape(atob(code.trim())))); const run = E.sanitize(o.run); if (!run) throw 0; S = run; if (owned()) E.unlock(S); gateSeen = E.atGate(S); profile.meta = sanitizeMeta(o.meta); dirtyUpgrades = true; endingShown = false; lastLogCount = 0; save(); render(true); toast('Save loaded.'); } catch (e) { toast('That code could not be read.'); } });
+  $('btn-reset').addEventListener('click', () => { if (!confirm('Start the century again from 1890? Your headlands stay; this run does not.')) return; S = E.newState({ speedBonus: profile.meta.speedBonus, unlocked: owned() }); gateSeen = false; dirtyUpgrades = true; endingShown = false; lastLogCount = 0; render(true); save(); setTab('log'); render(true); });
   if (profile.lastSeen) applyOffline(Date.now() - profile.lastSeen);
-  $('app').hidden = false; render(true); renderLog(); lastLogCount = S.log.length;
+  $('app').hidden = false; render(true); renderLog(); lastLogCount = S.log.length; renderUnlockCard(); BILL.start();
+  if (E.atGate(S) && $('modal-away').hidden) showUnlock('held');
   if ('serviceWorker' in navigator && location.protocol !== 'file:') navigator.serviceWorker.register('sw.js').catch(() => { });
   // Android back button in a TWA: close any open sheet instead of leaving
-  window.addEventListener('popstate', () => { ['modal-away'].forEach(hide); });
+  window.addEventListener('popstate', () => { ['modal-away', 'modal-unlock'].forEach(hide); });
   requestAnimationFrame(frame);
 }
 
 /* Test API for sims, screenshots and the smoke test. */
 window.__keepthelight = {
-  get state() { return S; }, E, D, VERSION,
-  setYear(y, d) { S.year = Math.max(D.START_YEAR, Math.min(D.END_YEAR - 1, y | 0)); S.day = Math.max(0, Math.min(364, d | 0)); S.dayIndex = (S.year - D.START_YEAR) * 365 + S.day; S.ended = null; dirtyUpgrades = true; render(true); },
+  get state() { return S; }, E, D, VERSION, billing: BILL, unlockShown: () => !$('modal-unlock').hidden, showUnlock,
+  setYear(y, d) { S.year = Math.max(D.START_YEAR, Math.min(D.END_YEAR - 1, y | 0)); S.day = Math.max(0, Math.min(364, d | 0)); S.dayIndex = (S.year - D.START_YEAR) * 365 + S.day; S.ended = null; if (S.year < D.GATE_YEAR || S.unlocked) { S.gated = false; gateSeen = false; } dirtyUpgrades = true; render(true); },
   give(o) { for (const k of ['fuel', 'funds', 'standing', 'village']) if (o[k] != null) S[k] = +o[k]; render(true); },
   buyAll() { let n = 0; for (const u of D.UPGRADES) if (E.upgradeAvailable(S, u)) { S.bought[u.id] = u.max || 1; n++; } dirtyUpgrades = true; render(true); return n; },
   forceEvent(id) { const ok = E.forceEvent(S, id); maybeShowEvent(); return ok; },

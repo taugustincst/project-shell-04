@@ -18,7 +18,7 @@ An incremental that ends. One lighthouse, 1890 to 1990, a century in a logbook.
 - No ads. No timers. No accounts. No consumables.
 - Fully offline. The light keeps earning while you are away.
 - Portrait, one-handed, large-text and high-contrast options, no twitch.
-- The whole century, 1890 to 1990: three endings and four headlands.
+- 1890 to the first bulb in 1930 is free; one purchase opens the rest of the century, three endings and three more headlands.
 
 ## Screenshot captions
 1. 1890–1990 · a story in a logbook
@@ -30,8 +30,8 @@ An incremental that ends. One lighthouse, 1890 to 1990, a century in a logbook.
 Game · Simulation. Tags: incremental, idle, text, story, offline.
 
 ## Declarations (to confirm in Console)
-- IARC questionnaire: no violence beyond text references to war and shipwreck; no gambling; no user interaction; no ads; in-app purchases: no.
+- IARC questionnaire: no violence beyond text references to war and shipwreck; no gambling; no user interaction; no ads; in-app purchases: yes (one, the rest of the century).
 - Target audience: 13+ (choose 13-15, 16-17, 18+). Not designed for children.
-- Data safety: no data collected, no data shared, no network access; progress stays on the device. Privacy policy: the repo's Pages site, privacy.html.
+- Data safety: no data collected or shared by the game; progress stays on the device. The purchase goes through Google Play, which holds it (check the form's in-app purchase questions). Privacy policy: the repo's Pages site, privacy.html.
 - Contact: elderon@augustinnovations.io
-- Price: paid download, suggested $4.99 (set in Play Console)
+- Price: free to install. One in-app product, `full_unlock` "The rest of the century", $4.99, opens 1930 to 1990, the endings and the other headlands (set in Play Console, see PLAY.md)

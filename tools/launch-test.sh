@@ -22,7 +22,21 @@ adb install -r "$APK" || fail "the APK did not install"
 adb shell pm clear "$PKG" >/dev/null 2>&1 || true
 adb logcat -c
 adb shell monkey -p "$PKG" -c android.intent.category.LAUNCHER 1 >/dev/null 2>&1
-sleep 15
+# A freshly booted CI emulator can take well over 15 seconds to bring up its
+# first WebView, and a first launch whose renderer died while the emulator's
+# graphics were starting never loads. So wait for the page's ready line for up
+# to 90 seconds, and stop and reopen the app once at 45 seconds. A crash, a
+# script error or a missing file still fails below, whenever it happened.
+for i in $(seq 1 90); do
+  adb logcat -d | grep -q "KEEPTHELIGHT_READY elements=" && break
+  if [ "$i" -eq 45 ]; then
+    echo "launch-test: no ready line after 45 s, reopening the app once"
+    adb shell am force-stop "$PKG" >/dev/null 2>&1 || true
+    adb shell monkey -p "$PKG" -c android.intent.category.LAUNCHER 1 >/dev/null 2>&1
+  fi
+  sleep 1
+done
+sleep 3
 adb exec-out screencap -p > "$OUT/after-launch.png" || true
 adb logcat -d > "$OUT/logcat.txt"
 adb shell dumpsys activity activities | grep -E "mResumedActivity|topResumedActivity" | tee "$OUT/resumed.txt" || true
