@@ -69,8 +69,16 @@ async function connect() {
   // A freshly booted CI emulator can take well over a minute to bring up the
   // first WebView, so wait longer, and open the app again once in case its
   // first launch was lost while the phone was still settling.
-  for (let i = 0; i < 100; i++) {
-    if (i === 50) { try { adb('shell', 'monkey', '-p', PKG, '-c', 'android.intent.category.LAUNCHER', '1'); } catch (e) { /* try on */ } }
+  // A first launch whose WebView renderer died while the emulator's graphics
+  // were still starting never comes back, so every 30 tries the app is stopped
+  // and opened fresh, with the screen woken and unlocked first.
+  let seen = 'nothing yet';
+  for (let i = 0; i < 150; i++) {
+    if (i > 0 && i % 30 === 0) {
+      for (const cmd of [['input', 'keyevent', 'KEYCODE_WAKEUP'], ['wm', 'dismiss-keyguard'], ['am', 'force-stop', PKG], ['monkey', '-p', PKG, '-c', 'android.intent.category.LAUNCHER', '1']]) {
+        try { adb('shell', ...cmd); } catch (e) { /* try on */ }
+      }
+    }
     let pid = '';
     try { pid = adb('shell', 'pidof', PKG); } catch (e) { /* not up yet */ }
     if (pid) {
@@ -78,6 +86,7 @@ async function connect() {
         adb('forward', `tcp:${PORT}`, `localabstract:webview_devtools_remote_${pid.split(/\s+/)[0]}`);
         const list = await (await fetch(`http://127.0.0.1:${PORT}/json`)).json();
         const page = list.find(t => t.type === 'page' && /appassets\.androidplatform\.net/.test(t.url));
+        seen = `pid ${pid}, DevTools pages: ${JSON.stringify(list.map(t => [t.type, t.url]))}`;
         if (page) {
           ws = new WebSocket(page.webSocketDebuggerUrl);
           await new Promise((res, rej) => { ws.onopen = res; ws.onerror = rej; });
@@ -90,11 +99,13 @@ async function connect() {
           if (await js('!!(window.__keepthelight)')) return;
           ws.close(); ws = null;
         }
-      } catch (e) { /* the page or its DevTools socket is not ready yet */ }
-    }
+      } catch (e) { seen = `pid ${pid}, ${e.message || e}`; /* the page or its DevTools socket is not ready yet */ }
+    } else seen = 'the app is not running';
     await sleep(1000);
   }
-  fatal('could not reach the game page over WebView DevTools (is this a debug build?)');
+  let top = '';
+  try { top = adb('shell', 'dumpsys', 'activity', 'activities').split('\n').filter(l => /mResumedActivity|topResumedActivity/.test(l)).join(' ').trim(); } catch (e) { /* none */ }
+  fatal(`could not reach the game page over WebView DevTools (is this a debug build?). Last seen: ${seen}. Top activity: ${top || 'unknown'}`);
 }
 
 // ----------------------------------------------------------------- geometry
