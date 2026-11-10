@@ -11,7 +11,7 @@ Owner: Tj (Taylor Augustin) / AugustInnovations LLC.
 ## The game
 
 - **Three eras** that change the economy's shape: The Oil Years (1890–1914, oil hauled up the stair), Flame to Filament (1914–1945, paraffin, generators, war), The Electric Coast (1945–1990, mains, radar, helicopters, the automation letter).
-- **65 upgrades** across Lamp, Stores, Keepers, Signals, Station and Village. Some need standing with the Board, not just money.
+- **66 upgrades** across Lamp, Stores, Keepers, Signals, Station and Village. Some need standing with the Board, not just money.
 - **41 events** with real trade-offs, including scheduled story events (Admiralty orders in 1914 and 1939, the 1926 strike, the winter of 1947, the 1953 surge, the 1974 spill, and the 1979 letter that decides the ending).
 - **A logbook** of 85 authored story entries across four generations of the Rook family, plus milestone and event entries. The story is the content.
 - **Three endings** in 1990: *Legend* (the light stays manned), *The Light Keeps Itself* (you helped automate it), *The Last Keeper* (you fought and lost). Then **prestige**: carry one heirloom upgrade to a new headland (Skerra Head, Pulau Api, Cap Fer), each with its own weather and economy, with a permanent pace bonus per completed century.

@@ -106,6 +106,7 @@ const UPGRADES = [
   { id: 'satnav', name: 'Satellite fix', era: 3, cost: 45000, year: 1985, cat: 'Signals', eff: { dues: 1.5, auto: 1 }, desc: 'The ships know where they are now, to the yard, from space. They still look for the light.' },
   { id: 'endowment', name: 'Village endowment', era: 3, cost: 20000, costMult: 1.5, max: 10, needStanding: 300, cat: 'Village', eff: { legend: 1, standingRate: 1.05 }, desc: 'The station\'s surplus, given back: a reading room, a nurse, a boat for the school. A century of light, spent on the people who lived by it.' },
   { id: 'works', name: 'Parish works', era: 3, cost: 25000, costMult: 1.35, max: 12, year: 1955, cat: 'Village', eff: { villageCapAdd: 250, standingRate: 1.03 }, desc: 'A sea wall, a bus shelter, a roof for the chapel, a road that does not flood. Nobody thanks the light for a drain. The drain is there because of the light.' },
+  { id: 'fund', name: "Keepers' widows fund", era: 3, cost: 500, costMult: 1.02, max: 100, year: 1985, req: ['satnav'], cat: 'Village', eff: { standingRate: 1.005 }, desc: 'A subscription for the families of keepers who did not come down the stair. Every coast has a list of names. You pay in so this one stays short.' },
   { id: 'museum', name: 'Lamp-room museum', era: 3, cost: 60000, needStanding: 900, year: 1984, req: ['heritage'], cat: 'Village', eff: { legend: 2, trade: 1.1 }, desc: 'The old oil cans, the butter knives, the mooring rope, and a hundred years of logbook under glass. The keepers are in it. So is the kettle.' }
 ];
 

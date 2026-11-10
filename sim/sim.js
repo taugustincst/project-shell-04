@@ -62,6 +62,8 @@ if (process.argv[2] === 'check') {
     ['era 3 is not bought out early', active.every(n => !R[n].allBoughtAt || R[n].allBoughtAt >= 1975), active.map(n => R[n].allBoughtAt || '-').join(' ')],
     ['a first run takes 4 to 9 hours of play', active.every(n => R[n].hours >= 4 && R[n].hours <= 9), active.map(n => f(R[n].hours)).join(' ')],
     ['the second century is at least 15% faster', p2.hours <= R.greedy.hours * 0.85, `${f(p2.hours)}h vs ${f(R.greedy.hours)}h`],
+    ['greedy play ends the century with only low thousands unspent', R.greedy.funds < 10000, `£${f(R.greedy.funds, 0)}`],
+    ['no active player ends with more than £15k unspent', active.every(n => R[n].funds < 15000), active.map(n => '£' + f(R[n].funds, 0)).join(' ')],
     ['neglect never reaches a manned light', R.neglect.ended !== 'legend', R.neglect.ended]
   ];
   let bad = 0; for (const [n, ok, why] of gates) { console.log((ok ? 'PASS ' : 'FAIL ') + n + '  ' + why); if (!ok) bad++; }

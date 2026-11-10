@@ -98,4 +98,11 @@ t('heirlooms and headlands', () => {
   assert.deepStrictEqual(E.headlandOptions({}).map(h => h.id), ['carrow']); assert.deepStrictEqual(E.headlandOptions({ completions: 1, legends: 0 }).map(h => h.id), ['carrow', 'skerra', 'api']); assert.strictEqual(E.headlandOptions({ completions: 1, legends: 1 }).length, 4);
   assert.ok(s.log[0].t.startsWith('Took charge of Skerra Head'));
 });
+t('the widows fund opens only after the satellite fix and soaks up late surplus in small steps', () => {
+  const s = E.newState({ seed: 6, unlocked: true }); s.year = 1986; s.day = 0; s.dayIndex = 96 * 365; s.funds = 50000;
+  const u = E.upgradeById.fund; assert.ok(u && u.max >= 50, 'a deep repeatable');
+  assert.ok(!E.upgradeAvailable(s, u), 'hidden before the satellite fix'); s.bought.satnav = 1; assert.ok(E.upgradeAvailable(s, u));
+  const first = E.upgradeCost(s, u); assert.ok(first <= 3000, 'first subscription costs low thousands: ' + first);
+  s.bought.fund = u.max - 1; assert.ok(E.upgradeCost(s, u) < 20000, 'still a small step at the end: ' + E.upgradeCost(s, u));
+});
 console.log(process.exitCode ? 'SOME FAILED' : `ALL ${n} PASSED`);
