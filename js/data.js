@@ -106,6 +106,7 @@ const UPGRADES = [
   { id: 'satnav', name: 'Satellite fix', era: 3, cost: 45000, year: 1985, cat: 'Signals', eff: { dues: 1.5, auto: 1 }, desc: 'The ships know where they are now, to the yard, from space. They still look for the light.' },
   { id: 'endowment', name: 'Village endowment', era: 3, cost: 20000, costMult: 1.5, max: 10, needStanding: 300, cat: 'Village', eff: { legend: 1, standingRate: 1.05 }, desc: 'The station\'s surplus, given back: a reading room, a nurse, a boat for the school. A century of light, spent on the people who lived by it.' },
   { id: 'works', name: 'Parish works', era: 3, cost: 25000, costMult: 1.35, max: 12, year: 1955, cat: 'Village', eff: { villageCapAdd: 250, standingRate: 1.03 }, desc: 'A sea wall, a bus shelter, a roof for the chapel, a road that does not flood. Nobody thanks the light for a drain. The drain is there because of the light.' },
+  { id: 'fund', name: "Keepers' widows fund", era: 3, cost: 500, costMult: 1.02, max: 100, year: 1985, req: ['satnav'], cat: 'Village', eff: { standingRate: 1.005 }, desc: 'A subscription for the families of keepers who did not come down the stair. Every coast has a list of names. You pay in so this one stays short.' },
   { id: 'museum', name: 'Lamp-room museum', era: 3, cost: 60000, needStanding: 900, year: 1984, req: ['heritage'], cat: 'Village', eff: { legend: 2, trade: 1.1 }, desc: 'The old oil cans, the butter knives, the mooring rope, and a hundred years of logbook under glass. The keepers are in it. So is the kettle.' }
 ];
 
@@ -114,6 +115,7 @@ const UPGRADES = [
  Choice effects: fuel, funds, standing, village, shipsSaved, keepersRaised, dark (nights the light is forced out),
    mod: {key, mult, days} (temporary), flag: name, grant: upgradeId, chance: {p, then, else}, log: text for the logbook.
  cond: 'fuelHigh' (store over half), 'lifeboat', 'keepers2', 'village:N', 'flag:name', '!flag:name'
+ Every choice that gains something also costs or risks something (tests/engine.test.js holds this); a plain refusal may do nothing.
 */
 const EVENTS = [
   { id: 'storm', name: 'A southwesterly gale', weight: 5, window: [1890, 1990], tags: ['storm'],
@@ -139,26 +141,26 @@ const EVENTS = [
     text: 'Four men and a boy, soaked through, from a boat that broke up off Shale Point. Not your bank, but your door.',
     choices: [
       { label: 'Shelter them at the station', eff: { funds: -15, standing: 4, village: 2, log: 'Took in five from the Shale Point wreck. Fed them from the stores. The boy slept in the lamp room because he would not sleep anywhere he could not see a light.' } },
-      { label: 'Send them to the village', eff: { village: 4, log: 'Sent the Shale Point survivors to the village with a lantern. The village took them in without asking whose they were.' } }
+      { label: 'Send them to the village', eff: { village: 4, standing: -2, log: 'Sent the Shale Point survivors to the village with a lantern. The village took them in without asking whose they were. The Board\'s report says a station door should have been opened.' } }
     ] },
   { id: 'chandler', name: 'A chandler with a bargain', weight: 3, window: [1890, 1945],
     text: 'A coaster lies off the point with oil to sell, cheap, no questions, before the tide turns.',
     choices: [
       { label: 'Buy it', eff: { funds: -40, fuel: 100, log: 'Bought a hundred gallons off a coaster for less than the chandler charges for sixty. Did not ask where it came from. It burns.' } },
-      { label: 'Decline', eff: { standing: 1, log: 'A coaster offered cheap oil. Declined. The Board\'s oil is dearer and comes with no questions in it.' } }
+      { label: 'Decline', eff: { standing: 1, funds: -15, log: 'A coaster offered cheap oil. Declined. The Board\'s oil is dearer and comes with no questions in it.' } }
     ] },
   { id: 'smugglers', name: 'A quiet word', weight: 2, window: [1890, 1925], once: true,
     text: 'Two men from no village you know ask, politely, that the light be out on Thursday. Just Thursday. For a consideration.',
     choices: [
-      { label: 'Refuse', eff: { standing: 4, flag: 'refused_smugglers', log: 'Two men asked for a dark Thursday. Refused. One of them looked at the stairs for a long time before he left.' } },
+      { label: 'Refuse', eff: { flag: 'refused_smugglers', chance: { p: 0.4, then: { standing: 4, fuel: -20, log: 'Two men asked for a dark Thursday. Refused. On Thursday night someone stove in the oil store. Twenty gallons on the shingle, and the light burned anyway.' }, else: { standing: 4, log: 'Two men asked for a dark Thursday. Refused. One of them looked at the stairs for a long time before he left.' } } } },
       { label: 'Take the money', eff: { funds: 80, dark: 1, standing: -3, flag: 'took_bribe', log: 'Thursday. The light was out from midnight to four. I have written nothing else for that night and never will.' } }
     ] },
   { id: 'salvage', name: 'Timber on the beach', weight: 3, window: [1890, 1960],
     text: 'A wreck\'s cargo of Baltic timber is coming ashore in the bay, plank by plank.',
     choices: [
       { label: 'Salvage it for the station', eff: { funds: 80, standing: -2, log: 'Stacked forty planks of Baltic pine in the yard. The Receiver of Wreck will hear of it. The yard needed a shed.' } },
-      { label: 'Report it to the Receiver', eff: { standing: 5, log: 'Reported the timber to the Receiver of Wreck. He thanked me in a letter so formal I had it framed.' } },
-      { label: 'Let the village have it', eff: { village: 12, log: 'Looked the other way while the village took the timber. Three new roofs by Easter. One of them is the schoolroom.' } }
+      { label: 'Report it to the Receiver', eff: { standing: 5, village: -4, log: 'Reported the timber to the Receiver of Wreck. He thanked me in a letter so formal I had it framed. The village has not forgiven me the timber.' } },
+      { label: 'Let the village have it', eff: { village: 12, standing: -4, log: 'Looked the other way while the village took the timber. Three new roofs by Easter. One of them is the schoolroom. The Receiver has heard, and written.' } }
     ] },
   { id: 'relief_late', name: 'The relief is late', weight: 3, window: [1890, 1965],
     text: 'A week past the day and no tender. The stores are thinner than the log admits.',
@@ -181,20 +183,20 @@ const EVENTS = [
   { id: 'painter', name: 'A painter asks to lodge', weight: 2, window: [1890, 1939],
     text: 'A thin man with an easel wants the spare room for a season. He will pay, and he will paint.',
     choices: [
-      { label: 'Take him in', eff: { funds: 30, standing: 1, log: 'A painter lodged a season. His picture of the tower in fog hangs in a gallery in London now, they say. He left owing a week.' } },
+      { label: 'Take him in', eff: { funds: 30, standing: -2, log: 'A painter lodged a season. His picture of the tower in fog hangs in a gallery in London now, they say. He left owing a week. The Board does not approve of lodgers, and said so.' } },
       { label: 'No lodgers', eff: { log: 'A painter asked to lodge. No lodgers at a light station. He painted the tower from the harbour instead, every day, in all weathers.' } }
     ] },
   { id: 'marry', name: 'The assistant wishes to marry', weight: 2, window: [1890, 1960], cond: 'keepers2',
     text: 'He has asked a village girl and she has said yes. They want the cottage.',
     choices: [
-      { label: 'Give them the cottage', eff: { village: 6, standing: 2, keepersRaised: 1, log: 'The assistant married a harbour girl. Gave them the cottage. There will be a child in the lamp room within the year, I expect. There always is.' } },
+      { label: 'Give them the cottage', eff: { village: 6, standing: 2, keepersRaised: 1, funds: -25, log: 'The assistant married a harbour girl. Gave them the cottage. There will be a child in the lamp room within the year, I expect. There always is. Furnished it out of the station\'s pocket.' } },
       { label: 'The cottage is for the Principal', eff: { standing: -2, log: 'Refused the assistant the cottage. He married anyway and lives in the village and is late for the morning watch. I may have been wrong.' } }
     ] },
   { id: 'petition', name: 'The village petitions', weight: 2, window: [1895, 1960], cond: 'village:150', once: true,
     text: 'A petition with sixty names: a small light on the harbour wall, so the boats can find the entrance on a black night.',
     choices: [
       { label: 'Fund it from the station', eff: { funds: -200, village: 20, standing: 4, flag: 'harbour_light', log: 'Paid for a harbour light out of the station purse. The Board will call it irregular. The fleet calls it the Little Light.' } },
-      { label: 'Refer them to the Board', eff: { standing: 1, log: 'Referred the harbour-light petition to the Board. The Board has acknowledged it. The Board acknowledges things.' } }
+      { label: 'Refer them to the Board', eff: { standing: 1, village: -5, log: 'Referred the harbour-light petition to the Board. The Board has acknowledged it. The Board acknowledges things. The harbour has noticed.' } }
     ] },
   { id: 'audit', name: 'The stores audit', weight: 2, window: [1890, 1975],
     text: 'A clerk with a ledger wants the stores counted against the log, cask by cask.',
@@ -211,12 +213,12 @@ const EVENTS = [
     text: 'The Board\'s own tender, engine stopped, drifting down on the bank in a rising sea.',
     choices: [
       { label: 'Launch the station boat', eff: { funds: -20, shipsSaved: 1, standing: 8, log: 'Launched for the tender with her engine dead. Got a line aboard on the third throw. The Board wrote to thank me, which it does not do.' } },
-      { label: 'Keep the light and pray', eff: { standing: 1, log: 'The tender got her engine going a cable off the bank. I kept the light and did nothing else, which was correct, and which I will think about for a long time.' } }
+      { label: 'Keep the light and pray', eff: { chance: { p: 0.3, then: { standing: -6, log: 'The Board\'s tender struck the bank in the dark. Her crew came ashore in our boat after all, at first light, and the Board\'s report asks why not sooner.' }, else: { standing: 1, log: 'The tender got her engine going a cable off the bank. I kept the light and did nothing else, which was correct, and which I will think about for a long time.' } } } }
     ] },
   { id: 'birdfall', name: 'The birds', weight: 2, window: [1890, 1990], tags: ['fog'],
     text: 'Thousands of migrating birds strike the lantern in the fog. The gallery is feathered to the rail.',
     choices: [
-      { label: 'Keep full light', eff: { standing: 1, log: 'A bird-fall in the night. Swept the gallery at dawn: starlings, redwings, a woodcock. Kept full light. The ships come first.' } },
+      { label: 'Keep full light', eff: { standing: 1, mod: { key: 'range', mult: 0.85, days: 4 }, log: 'A bird-fall in the night. Swept the gallery at dawn: starlings, redwings, a woodcock. Kept full light. The ships come first. The glass took four days to come clean.' } },
       { label: 'Shade half the lantern until dawn', eff: { funds: -10, village: 3, log: 'Shaded the landward half of the lantern through the bird-fall. Half of them lived. A naturalist from the village came to count the rest and has not stopped coming.' } }
     ] },
   { id: 'cottage_fire', name: 'Fire in the cottage', weight: 1, window: [1890, 1975],
@@ -254,7 +256,7 @@ const EVENTS = [
     text: 'A horned mine, drifting in on the flood, two cables from the fishing fleet.',
     choices: [
       { label: 'Row out and tie a flag to it', eff: { chance: { p: 0.6, then: { standing: 10, village: 5, log: 'Rowed out to a drifting mine and tied a flag to it so the Navy could find it. My hands did not shake until I was ashore.' }, else: { funds: -100, standing: 4, log: 'Went for the mine in the boat. It went up on the rocks before I reached it and took the landing stage with it. The fleet was in. That is the point.' } } } },
-      { label: 'Telegraph the Navy and keep the fleet in', eff: { standing: 3, village: 2, log: 'Mine in the bay. Telegraphed the Navy and hoisted the flags to keep the fleet in. A trawler came and shot at it until it sank. Dull, and correct.' } }
+      { label: 'Telegraph the Navy and keep the fleet in', eff: { standing: 3, village: -3, log: 'Mine in the bay. Telegraphed the Navy and hoisted the flags to keep the fleet in. A trawler came and shot at it until it sank. Dull, and correct. The fleet lost two days\' fishing and blamed the light.' } }
     ] },
   { id: 'ration', name: 'Fuel on the ration', weight: 4, window: [1916, 1946], tags: ['war'], once: true,
     text: 'The Ministry has rationed the station\'s fuel. Half the allowance, for the duration.',
@@ -265,8 +267,8 @@ const EVENTS = [
   { id: 'bomber', name: 'A bomber in the bay', weight: 3, window: [1940, 1945], once: true, tags: ['war'],
     text: 'An aircraft down in the bay at dusk. A man in the water. The markings are not ours.',
     choices: [
-      { label: 'Row', eff: { standing: 6, village: 4, keepersRaised: 0, log: 'A bomber came down in the bay. We rowed. The pilot was nineteen and German and very cold, and we brought him in and gave him tea, because that is what the lifeboat does.' } },
-      { label: 'Call the coastguard and keep the light', eff: { standing: 2, log: 'Aircraft down in the bay. Called it in and kept the light. The coastguard launch was there in twenty minutes. He was alive. He is a prisoner. He was nineteen.' } }
+      { label: 'Row', eff: { standing: 6, village: -4, fuel: -5, log: 'A bomber came down in the bay. We rowed. The pilot was nineteen and German and very cold, and we brought him in and gave him tea, because that is what the lifeboat does. Half the village will not speak to us. The other half brought jam.' } },
+      { label: 'Call the coastguard and keep the light', eff: { chance: { p: 0.25, then: { standing: -4, log: 'Aircraft down in the bay. Called it in and kept the light. The coastguard launch was there in twenty minutes. Twenty minutes was too long. He was nineteen.' }, else: { standing: 2, log: 'Aircraft down in the bay. Called it in and kept the light. The coastguard launch was there in twenty minutes. He was alive. He is a prisoner. He was nineteen.' } } } }
     ] },
   { id: 'strike', name: 'No deliveries', weight: 3, window: [1926, 1926], once: true, at: { y: 1926, d: 123 },
     text: 'The General Strike. No coal, no paraffin, no lorry, no tender. The store has what it has.',
@@ -278,7 +280,7 @@ const EVENTS = [
     text: 'A letter on thick paper: a member of the Royal Family wishes to see the light. The Board is beside itself.',
     choices: [
       { label: 'Polish everything', eff: { funds: -50, standing: 12, village: 8, log: 'Royal visit. A Duke climbed the stair, said "Splendid", and asked a good question about the mercury float. Gave him the answer. The Board gave me a medal, eventually.' } },
-      { label: 'Keep it a working day', eff: { standing: 4, log: 'Royal visit. Kept the station a working station: lamp trimmed at the usual hour, log written at the usual time. He noticed. He said he preferred it.' } }
+      { label: 'Keep it a working day', eff: { standing: 4, village: -4, log: 'Royal visit. Kept the station a working station: lamp trimmed at the usual hour, log written at the usual time. He noticed. He said he preferred it. The village had the bunting out and has not forgiven me it.' } }
     ] },
   { id: 'winter47', name: 'The winter', weight: 8, window: [1947, 1947], once: true, tags: ['storm'], at: { y: 1947, d: 45 },
     text: 'Snow to the sills and ice on the inside of the glass. The lorry has not come in three weeks and the sea is grey slush.',
@@ -296,19 +298,19 @@ const EVENTS = [
     text: 'A rusty freighter anchored off the point, playing records at the whole coast, wants to buy diesel, cash, no paperwork.',
     choices: [
       { label: 'Sell them the diesel', eff: { funds: 300, standing: -4, log: 'Sold diesel to the pirate radio ship. They dedicated a record to "the lighthouse". It was not a good record.' } },
-      { label: 'Refuse', eff: { standing: 2, log: 'Refused the pirate radio ship its diesel. They play the station a record every night anyway, to annoy me. It works.' } },
+      { label: 'Refuse', eff: { standing: 2, mod: { key: 'speed', mult: 0.9, days: 30 }, log: 'Refused the pirate radio ship its diesel. They play the station a record every night anyway, to annoy me. It works.' } },
       { label: 'Report them', eff: { standing: 5, village: -6, log: 'Reported the pirate radio ship. The village, which liked the records, has views. The Post Office sent a letter of thanks that I did not frame.' } }
     ] },
   { id: 'film', name: 'A film crew', weight: 2, window: [1950, 1989],
     text: 'A film company wants the tower for a week: cables on the stair, a lamp of their own, and a cheque.',
     choices: [
-      { label: 'Take the cheque', eff: { funds: 500, log: 'A film crew for a week. They lit the tower with their own lamps and asked me to look "weathered". I did not have to act.' } },
-      { label: 'A working light is not a set', eff: { standing: 2, log: 'Turned away a film crew. They filmed from the harbour. The film was about a murder. Not here.' } }
+      { label: 'Take the cheque', eff: { funds: 500, standing: -3, mod: { key: 'range', mult: 0.8, days: 7 }, log: 'A film crew for a week. They lit the tower with their own lamps and asked me to look "weathered". I did not have to act. Their cables kept the lantern door open all week. The Board\'s letter about it was longer than the cheque.' } },
+      { label: 'A working light is not a set', eff: { standing: 2, village: -3, log: 'Turned away a film crew. They filmed from the harbour. The film was about a murder. Not here. The village had hoped for the extras\' wages.' } }
     ] },
   { id: 'survey', name: 'The automation survey', weight: 4, window: [1962, 1985], once: true,
     text: 'Two engineers with a theodolite and a folder marked AUTOMATION FEASIBILITY. They are polite. They are thorough.',
     choices: [
-      { label: 'Help them', eff: { standing: 4, flag: 'helped_survey', auto: 2, log: 'Helped the automation survey. Showed them everything. They wrote it all down. One of them said, "You make it look simple." That is the job.' } },
+      { label: 'Help them', eff: { standing: 4, flag: 'helped_survey', auto: 2, village: -6, log: 'Helped the automation survey. Showed them everything. They wrote it all down. One of them said, "You make it look simple." That is the job. Word got round the harbour by teatime.' } },
       { label: 'Lose the paperwork', eff: { standing: -3, village: 6, legend: 1, log: 'The automation survey\'s folder went into the sea off the gallery in a gust. There was no gust. I have logged a gust.' } }
     ] },
   { id: 'spill', name: 'Oil on the beach', weight: 3, window: [1967, 1990], once: true, at: { y: 1974, d: 302 },
@@ -321,18 +323,18 @@ const EVENTS = [
     text: 'A petition from the village, four hundred names: the light must stay manned. They want the Principal Keeper\'s signature at the top.',
     choices: [
       { label: 'Sign it', eff: { village: 20, legend: 3, standing: -2, log: 'Signed the village petition to keep the light manned, at the top, in the same hand as the log. The Board will not like it. The Board is not here at three in the morning.' } },
-      { label: 'A keeper is neutral', eff: { standing: 3, auto: 1, log: 'Did not sign the petition. A keeper serves the Board and the ships, in that order on paper and the other order in fact. The village understood. Mostly.' } }
+      { label: 'A keeper is neutral', eff: { standing: 3, auto: 1, village: -8, log: 'Did not sign the petition. A keeper serves the Board and the ships, in that order on paper and the other order in fact. The village understood. Mostly.' } }
     ] },
   { id: 'sailing_school', name: 'A sailing school', weight: 2, window: [1960, 1990], once: true,
     text: 'The marina people want to run a sailing school for town children, with the lighthouse as its badge.',
     choices: [
-      { label: 'Lend the name and the gallery', eff: { village: 15, trade: 0, funds: 100, log: 'A sailing school with the lighthouse on its badge. Forty children a summer learning which way the flash goes. Good.' } },
+      { label: 'Lend the name and the gallery', eff: { village: 15, funds: 100, standing: -3, log: 'A sailing school with the lighthouse on its badge. Forty children a summer learning which way the flash goes. Good. The Board wrote to ask whose idea the gallery was.' } },
       { label: 'Decline', eff: { log: 'Declined the sailing school the use of the station. They used the harbour wall instead and put the lighthouse on the badge anyway.' } }
     ] },
   { id: 'drunk_assistant', name: 'The relief keeper', weight: 2, window: [1920, 1985], cond: 'keepers2',
     text: 'The relief keeper came off the boat drunk and is asleep on the stair. The middle watch is his.',
     choices: [
-      { label: 'Stand his watch and say nothing', eff: { standing: 2, log: 'Stood the relief\'s watch. Said nothing. He stood my next two without being asked. That is how it works, or it does not work.' } },
+      { label: 'Stand his watch and say nothing', eff: { chance: { p: 0.3, then: { standing: -5, log: 'Stood the relief\'s watch and said nothing. The Board heard anyway, from the boatman, and wants to know why it was not reported.' }, else: { standing: 2, log: 'Stood the relief\'s watch. Said nothing. He stood my next two without being asked. That is how it works, or it does not work.' } } } },
       { label: 'Report him', eff: { standing: 3, mod: { key: 'speed', mult: 0.85, days: 60 }, log: 'Reported the relief keeper. The Board removed him and sent nobody for two months. Right, and expensive.' } }
     ] },
   { id: 'wreck_boat', name: 'An empty boat', weight: 1, window: [1900, 1960],
@@ -344,7 +346,7 @@ const EVENTS = [
   { id: 'telegram_pay', name: 'Extra duties', weight: 2, window: [1895, 1970], once: true,
     text: 'The Board offers a stipend if the station takes on the Shale Point buoy: a row out in all weathers, monthly.',
     choices: [
-      { label: 'Accept', eff: { standing: 2, flag: 'buoy_duty', salaryAdd: 1, log: 'Took on the Shale Point buoy for a stipend. A wet row once a month for a dry sum. The buoy is called Bertha. Nobody knows why.' } },
+      { label: 'Accept', eff: { standing: 2, flag: 'buoy_duty', salaryAdd: 1, funds: -40, log: 'Took on the Shale Point buoy for a stipend. A wet row once a month for a dry sum. The buoy is called Bertha. Nobody knows why. Bought a boat fit for her out of the first quarter.' } },
       { label: 'The light is work enough', eff: { log: 'Declined the Shale Point buoy. The light is work enough. The Board gave it to Harrow, who gave it to a boy, who is doing well.' } }
     ] },
   { id: 'letter1979', name: 'The letter with a date in it', weight: 0, window: [1979, 1979], once: true, at: { y: 1979, d: 12 },
@@ -368,7 +370,7 @@ const EVENTS = [
   { id: 'patrol_fer', name: 'A patrol boat', weight: 4, window: [1890, 1990], tags: ['war'], headland: 'fer',
     text: 'A patrol boat with no flag asks, over a loud-hailer, which side the light is on tonight.',
     choices: [
-      { label: '"The ships\' side."', eff: { standing: 6, log: 'A patrol boat asked which side the light was on. Told them: the ships\'. They went away. They always go away. So far.' } },
+      { label: '"The ships\' side."', eff: { chance: { p: 0.3, then: { standing: 6, dark: 1, funds: -40, log: 'A patrol boat asked which side the light was on. Told them: the ships\'. They put two rounds through the lantern glass on the way out. One night dark while the glass came.' }, else: { standing: 6, log: 'A patrol boat asked which side the light was on. Told them: the ships\'. They went away. They always go away. So far.' } } } },
       { label: 'Say nothing and keep the beam turning', eff: { standing: 2, dark: 1, log: 'A patrol boat asked whose light this was. Said nothing. Put the light out for an hour to make the point and hated every minute of it.' } }
     ] }
 ];

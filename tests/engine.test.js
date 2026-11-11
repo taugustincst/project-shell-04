@@ -69,6 +69,19 @@ t('every event choice applies without throwing, on every headland', () => {
     assert.ok(E.forceEvent(s, ev.id)); const ch = E.eventChoices(s, ev); if (i >= ch.length) continue; assert.ok(E.resolveEvent(s, i), ev.id); assert.ok(isFinite(s.funds) && isFinite(s.fuel) && isFinite(s.standing) && isFinite(s.village));
   }
 });
+t('no event choice is a free gift: every choice that gains something pays something, in every branch it can take', () => {
+  // Folder's review P2-5: events are choices with trade-offs, never just bonuses. A choice may do nothing at all
+  // (a plain refusal); one that gains standing, village, funds or fuel must also cost something, or risk it.
+  const gains = f => f && ['fuel', 'funds', 'standing', 'village', 'shipsSaved', 'keepersRaised', 'salaryAdd', 'legend'].some(k => (f[k] || 0) > 0);
+  const costs = f => !!f && (['fuel', 'funds', 'standing', 'village'].some(k => (f[k] || 0) < 0) || (f.dark || 0) > 0 || (f.mod && f.mod.mult < 1) || f.flag === 'prepare' || (f.chance && (costs(f.chance.then) || costs(f.chance.else))));
+  const anyGain = f => gains(f) || !!(f && f.chance && (anyGain(f.chance.then) || anyGain(f.chance.else))) || !!(f && f.grant);
+  const free = [];
+  for (const ev of D.EVENTS) {
+    for (const c of ev.choices) if (anyGain(c.eff) && !costs(c.eff)) free.push(ev.id + ': ' + c.label);
+    assert.ok(ev.choices.some(c => costs(c.eff)), ev.id + ' has no choice with a cost');
+  }
+  assert.deepStrictEqual(free, []);
+});
 t('every upgrade is reachable by 1990 and its requirements exist', () => {
   for (const u of D.UPGRADES) { if (u.req) for (const r of u.req) assert.ok(E.upgradeById[r], u.id + ' requires unknown ' + r); assert.ok(D.ERAS[u.era - 1], u.id); }
   const s = E.newState({ seed: 2, unlocked: true }); s.year = 1989; s.funds = 1e9; s.standing = 1e6; let bought = 0;
@@ -84,5 +97,12 @@ t('heirlooms and headlands', () => {
   const bad = E.newState({ seed: 1, heirloom: 'mains' }); assert.strictEqual(bad.bought.mains, undefined, 'mains is not an era-1 heirloom'); 
   assert.deepStrictEqual(E.headlandOptions({}).map(h => h.id), ['carrow']); assert.deepStrictEqual(E.headlandOptions({ completions: 1, legends: 0 }).map(h => h.id), ['carrow', 'skerra', 'api']); assert.strictEqual(E.headlandOptions({ completions: 1, legends: 1 }).length, 4);
   assert.ok(s.log[0].t.startsWith('Took charge of Skerra Head'));
+});
+t('the widows fund opens only after the satellite fix and soaks up late surplus in small steps', () => {
+  const s = E.newState({ seed: 6, unlocked: true }); s.year = 1986; s.day = 0; s.dayIndex = 96 * 365; s.funds = 50000;
+  const u = E.upgradeById.fund; assert.ok(u && u.max >= 50, 'a deep repeatable');
+  assert.ok(!E.upgradeAvailable(s, u), 'hidden before the satellite fix'); s.bought.satnav = 1; assert.ok(E.upgradeAvailable(s, u));
+  const first = E.upgradeCost(s, u); assert.ok(first <= 3000, 'first subscription costs low thousands: ' + first);
+  s.bought.fund = u.max - 1; assert.ok(E.upgradeCost(s, u) < 20000, 'still a small step at the end: ' + E.upgradeCost(s, u));
 });
 console.log(process.exitCode ? 'SOME FAILED' : `ALL ${n} PASSED`);

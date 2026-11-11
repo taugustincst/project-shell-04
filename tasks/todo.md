@@ -23,7 +23,10 @@ Plan for v1.0 per HANDOFF.md. Tick as done; review at the bottom.
 - [x] Android WebView edition (`android/play`) with billing; emulator launch test and tap-through in CI
 - [ ] FOR TAYLOR: Play Console steps in PLAY.md; upload-key secrets
 - [x] Week-3 balance pass from sims (`node sim/sim.js check`)
-- [ ] Phone playtest of 1890–1930; screenshots and feature graphic redone for 1.1
+- [x] Screenshots and feature graphic redone for 1.1 (`tools/make-store-art.js`)
+- [x] Event teeth (P2-5): every gaining choice costs or risks something, held by an engine test
+- [x] Era-3 end funds in the low thousands for greedy play (Keepers' widows fund, sim check gates)
+- [ ] Phone playtest of 1890–1930
 - [ ] Folder expert review; submission only on Tj's approval
 
 ## Review (2026-11-03)
@@ -31,3 +34,9 @@ Built and verified: engine tests 11/11, smoke test 19/19, sims for all strategie
 
 ## Review (2026-11-10)
 1.1.0 on `play/free-unlock-v1.1`: engine tests 13/13, smoke all pass, sim check passes on seeds 7 and 1000, tap-through passes on the emulator stand-in. Open: event teeth (P2-5), store art, phone playtest, Taylor's Console steps.
+
+## Review (2026-11-10, later)
+Event teeth and store art on `play/event-teeth`: engine tests 14/14, smoke all pass, sim check passes on seeds 7 and 1000. Open: phone playtest, Taylor's Console steps.
+
+## Review (2026-11-10, re-score follow-up)
+End-funds sink on `play/event-teeth`: engine tests 15/15, smoke all pass, sim check passes on seeds 7 and 1000 with the two new end-funds gates. Open: phone playtest, Taylor's Console steps.
