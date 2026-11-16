@@ -1,10 +1,10 @@
 {
   "name": "keep-the-light",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "private": true,
   "description": "Keep the Light: a lighthouse-keeper incremental that ends. HTML5 game packaged for Google Play.",
   "scripts": {
-    "test": "node tests/engine.test.js && node tests/smoke.js",
+    "test": "node tests/more.test.js && node tests/engine.test.js && node tests/smoke.js",
     "sim": "node sim/sim.js all",
     "balance": "node sim/sim.js check 7 && node sim/sim.js check 1000",
     "tap-through": "node tools/tap-through.js",

@@ -113,3 +113,10 @@ select { width: 100%; font: inherit; padding: 10px; border-radius: 10px; backgro
 .unlock-list { margin: 8px 0; padding-left: 1.2em; } .unlock-list li { margin: 6px 0; }
 #modal-unlock .btn.primary { width: 100%; margin-top: 6px; }
 :focus-visible { outline: 3px solid #ffe9a8; outline-offset: 2px; }
+/* More from AugustInnovations */
+.more-list { list-style: none; margin: 8px 0 2px; padding: 0; display: grid; gap: 8px; }
+.more-row { display: flex; gap: 12px; align-items: center; padding: 10px 12px; border: 1px solid var(--line); border-radius: 12px; background: var(--panel-2); color: var(--ink); text-decoration: none; min-height: 48px; }
+.more-row:active { background: var(--bg); } .more-row:focus-visible { outline: 3px solid var(--gold); outline-offset: 2px; }
+.more-icon { width: 48px; height: 48px; border-radius: 11px; flex: none; }
+.more-text { display: flex; flex-direction: column; min-width: 0; } .more-title { font-size: 1rem; } .more-hook { font-size: .85rem; color: var(--muted); }
+.more-store { font-size: .7rem; text-transform: uppercase; letter-spacing: .1em; color: var(--gold); margin-top: 2px; }
