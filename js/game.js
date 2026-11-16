@@ -2,7 +2,7 @@
 (function () {
 'use strict';
 const E = window.KTL, D = E.D;
-const VERSION = '1.1.0';
+const VERSION = '1.1.1';
 const SAVE_KEY = 'keepthelight.v1', BACKUP_KEY = 'keepthelight.v1.backup';
 const $ = id => document.getElementById(id);
 const BILL = window.createBilling({ storageKey: 'keepthelight.unlock', productId: 'full_unlock' });
@@ -244,6 +244,8 @@ function applySettings() { const s = profile.settings; document.documentElement.
 function init() {
   load(); applySettings();
   $('about-version').textContent = VERSION;
+  // More from AugustInnovations sits in the More tab with settings and about, never at the station.
+  $('more-card').hidden = !(window.MoreGames && window.MoreGames.render($('more-list'), 'keepthelight'));
   document.querySelectorAll('.tab').forEach(b => b.addEventListener('click', () => setTab(b.dataset.tab)));
   $('btn-click').addEventListener('click', () => { const got = E.click(S); if (got > 0) render(true); });
   $('res-fuel').addEventListener('click', () => { const d = E.derive(S); toast(d.mains ? 'Power comes from the mains now.' : `${fmtN(S.fuel)} of ${fmtN(d.store)} ${d.era.fuelUnit} in store. The lamp burns ${fmtN(d.fuelUse)} a night; ${fmtN(d.supply)} a day is delivered.`); });

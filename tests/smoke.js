@@ -48,6 +48,8 @@ const toGate = q => T(q, () => { const K = window.__keepthelight; K.setYear(1929
   await p.click('#btn-held'); await p.waitForSelector('#modal-unlock:not([hidden])'); await p.click('#u-later');
   await p.click('.tab[data-tab="more"]');
   check('More carries the rest-of-the-century card', (await p.textContent('#unlock-card')).includes('1930 is free'));
+  { const rows = await p.$$eval('#more-list a', as => as.map(a => ({ href: a.href, t: a.textContent, img: a.querySelector('img').naturalWidth }))); check('the More tab lists the other live games with icon and Play link', await p.isVisible('#more-card') && rows.length >= 2 && rows.every(r => r.href.startsWith('https://play.google.com/store/apps/details?id=com.taugustincst.') && !r.href.endsWith('.keepthelight') && r.img > 0 && !/[$£€]/.test(r.t)), JSON.stringify(rows.map(r => r.href.split('.').pop()))); }
+  check('no other games are shown at the station', (await p.locator('#tab-station .more-row').count()) === 0);
   await p.click('.tab[data-tab="station"]');
   // save, reload, still held
   const before = await T(p, () => { const K = window.__keepthelight; K.save(); return { y: K.state.year, w: K.state.bought.wick, f: Math.round(K.state.funds) }; });
