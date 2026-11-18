@@ -3,28 +3,33 @@
 Rules from the roster: short description is features only, never price or promo wording. Screenshot captions state content, not price claims. Submission only on Tj's explicit approval.
 
 ## Title (30)
-Keep the Light
+Keep the Light: Lighthouse Sim
 
 ## Short description (80)
-An incremental that ends. One lighthouse, 1890 to 1990, a century in a logbook.
+Idle lighthouse incremental with an ending: a century in a keeper's logbook.
 
 ## Full description
-**100 years, one lighthouse.** Keep the Light is a text incremental with an ending. You take charge of a lighthouse in 1890 with four wicks, a clockwork, and oil for eleven nights. Burn oil, then paraffin, then electricity. Automate, electrify, build a harbour wall and a lifeboat station. Watch a village grow because your light exists.
+**An idle incremental game with a story and an ending: keep one lighthouse lit from 1890 to 1990.**
 
-**A story in a logbook.** Four generations of keepers write the log: storms, fog, inspectors, wars, a flood, a helicopter, and a letter from the Board with the word "automation" in it. Every event is a choice with a cost.
+**100 years, one lighthouse.** You take charge of Carrow Point light in 1890 with four wicks, a clockwork, and oil in the store for eleven nights. Haul the oil up a hundred and twelve steps, then pump paraffin, then walk the gallery of an electric light. Buy upgrades for the lamp, the stores, the keepers and the station: a harbour wall, a lifeboat station that turns wrecks into rescues. Watch a village grow into a port because your light exists.
 
-**It ends.** In 1990 the light is automated, or your century of service makes it a legend that stays manned. Three endings, each with a closing entry in the log. Then take an heirloom to a new headland: an ice coast, a monsoon strait, a contested cape, each with its own weather and economy.
+**A story in a logbook.** Four generations of the Rook family write the log: storms, fog, inspectors, wars, a flood, helicopters, and a letter from the Board with the word "automation" in it. Every event is a choice with a cost.
 
-- No ads. No timers. No accounts. No consumables.
-- Fully offline. The light keeps earning while you are away.
-- Portrait, one-handed, large-text and high-contrast options, no twitch.
-- 1890 to the first bulb in 1930 is free; one purchase opens the rest of the century, three endings and three more headlands.
+**It ends.** In 1990 the Board's automation order comes: the light keeps itself, the village fights and loses, or your century of service makes it a legend that stays manned. Three endings, each with a closing entry in the log. Then carry an heirloom to a new headland: an ice coast, a monsoon strait, or, after a legend, a contested cape, each with its own weather and economy.
+
+**1890 to the first bulb in 1930 is free.** One purchase unlocks the rest of the century, the three endings and the other headlands.
+
+- The light keeps earning while you are away, up to eight hours
+- Offline game: no ads, no account, nothing else to buy
+- Portrait play with large-text, high-contrast and reduce-motion options; save codes to move a game between devices
 
 ## Screenshot captions
-1. 1890–1990 · a story in a logbook
-2. Keep the light through fog, gales and war
-3. Electrify the lamp, build the village
-4. Three endings. Then a new headland.
+1. A century in a logbook · One lighthouse, 1890 to 1990
+2. Every event is a choice · Fog, gales, wrecks and war
+3. Electrify the light · Oil, then paraffin, then power
+4. It ends in 1990 · Three endings, each closing the log
+
+Captioned phone screenshots, in this order: `store/play/play-01.png` to `play-04.png` (1080 × 1920).
 
 ## Category
 Game · Simulation. Tags: incremental, idle, text, story, offline.
