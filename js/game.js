@@ -2,7 +2,7 @@
 (function () {
 'use strict';
 const E = window.KTL, D = E.D;
-const VERSION = '1.1.1';
+const VERSION = '1.1.2';
 const SAVE_KEY = 'keepthelight.v1', BACKUP_KEY = 'keepthelight.v1.backup';
 const $ = id => document.getElementById(id);
 const BILL = window.createBilling({ storageKey: 'keepthelight.unlock', productId: 'full_unlock' });
